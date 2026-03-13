@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="light-mode">
+<body>
+
     <div class="app-container">
         <header class="glass-header">
             <div class="top-bar">
@@ -29,16 +30,15 @@
 
         <main id="mainContent">
             <div id="plannerTab" class="tab-content"></div>
-
             <div id="financeTab" class="tab-content" style="display:none;"></div>
         </main>
 
         <nav class="bottom-nav">
-            <div class="nav-item active" data-tab="planner">
+            <div class="nav-item active" data-tab="planner" id="navPlanner">
                 <span class="material-symbols-rounded">calendar_month</span>
                 <span>시간표</span>
             </div>
-            <div class="nav-item" data-tab="finance">
+            <div class="nav-item" data-tab="finance" id="navFinance">
                 <span class="material-symbols-rounded">account_balance_wallet</span>
                 <span>가계부</span>
             </div>
@@ -71,9 +71,9 @@
         </div>
     </div>
 
-    <script async defer src="https://apis.google.com/js/api.js"></script>
-    <script async defer src="https://accounts.google.com/gsi/client"></script>
     <script src="app.js"></script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gsiLoaded()"></script>
 
     <script>
         function openSettings() {

@@ -17,6 +17,10 @@
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
     <link rel="stylesheet" href="style.css">
+
+    <!-- Google API Scripts -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
 
 <body>
@@ -24,7 +28,7 @@
         <!-- Header -->
         <header class="glass-header">
             <div class="top-bar">
-                <div class="logo-area">
+                <div class="logo-area" id="logoArea" style="cursor: pointer;" title="설정 열기">
                     <span class="material-symbols-rounded logo-icon" id="mainIcon">edit_calendar</span>
                     <h1 id="mainTitle">Planner</h1>
                 </div>
@@ -381,6 +385,31 @@
                         <label>앱 제목 ✏️</label>
                         <input type="text" id="settingsTitleInput" class="full-input" placeholder="예: 내 공부 플래너"
                             maxlength="15">
+                    </div>
+
+                    <div class="settings-group"
+                        style="margin-top: 24px; border-top: 1px solid var(--glass-border); padding-top: 16px;">
+                        <label>클라우드 관리</label>
+
+                        <!-- 구글 로그인 버튼 렌더링을 위한 컨테이너 -->
+                        <div id="g_id_onload" style="display: none;"></div>
+                        <div id="googleLoginBtnContainer" style="margin-top: 8px;">
+                            <!-- The GSI button will be custom rendered via JS or standard div -->
+                            <button id="customGoogleLoginBtn" class="btn-secondary" style="width: 100%;">
+                                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google"
+                                    style="width: 18px; margin-right: 8px;">
+                                구글 계정 연결하기
+                            </button>
+                        </div>
+
+                        <!-- 동기화 / 백업 버튼 (초기엔 숨김) -->
+                        <div id="googleBackupContainer" style="display: none; margin-top: 8px;">
+                            <button id="googleBackupBtn" class="btn-primary"
+                                style="background-color: #10B981; border-color: #10B981; width: 100%;">
+                                <span class="material-symbols-rounded"
+                                    style="font-size: 18px; margin-right: 6px;">cloud_upload</span> 지금 구글에 백업하기
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

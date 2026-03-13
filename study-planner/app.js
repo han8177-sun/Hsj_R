@@ -1,4 +1,10 @@
+const GOOGLE_CLIENT_ID = '1059241393010-dhcs8fm43uqppd65m113eqj4jk8qk6dt.apps.googleusercontent.com';
+const GOOGLE_API_KEY = 'AIzaSyBSmTQrvXqgFlReBfwGolfgSWlNLHU5_-s';
+
 document.addEventListener('DOMContentLoaded', () => {
+    // 
+    // Google Cloud API (이곳에 키가 안전하게 등록되었습니다!)
+    // =========================================================
     // ==========================================
     // 0. TAB NAVIGATION LOGIC (Spread)
     // ==========================================
@@ -510,10 +516,56 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsModal = document.getElementById('settingsModal');
     const settingsTitleInput = document.getElementById('settingsTitleInput');
 
-    document.getElementById('settingsBtn').addEventListener('click', () => {
+    // Logo area clicks also open settings
+    const logoArea = document.getElementById('logoArea');
+    if (logoArea) {
+        logoArea.addEventListener('click', openSettingsModal);
+    }
+
+    document.getElementById('settingsBtn').addEventListener('click', openSettingsModal);
+
+    function openSettingsModal() {
         settingsTitleInput.value = userSettings.appTitle || 'Planner';
         settingsModal.classList.add('show');
-    });
+
+        // Handle Google Login UI rendering if not logged in
+        if (!isGoogleLoggedIn && window.google) {
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: handleGoogleLoginSuccess
+            });
+            google.accounts.id.renderButton(
+                document.getElementById("googleLoginBtnContainer"),
+                { theme: "outline", size: "large", width: 300 } // customization attributes
+            );
+        }
+    }
+
+    // Fallback custom button if GSI fails to auto-render (optional standard trigger)
+    const customGoogleLoginBtn = document.getElementById('customGoogleLoginBtn');
+    if (customGoogleLoginBtn) {
+        customGoogleLoginBtn.addEventListener('click', () => {
+            // In a real app, this might trigger the OAuth popup directly or GSI library handles it via renderButton.
+            alert('Google Identity Services 버튼을 초기화하는 중입니다.');
+        });
+    }
+
+    function handleGoogleLoginSuccess(response) {
+        // 성공 시 JWT credential 파싱 및 상태 업데이트 로직
+        console.log("Encoded JWT ID token: " + response.credential);
+        isGoogleLoggedIn = true;
+
+        document.getElementById('googleLoginBtnContainer').style.display = 'none';
+        document.getElementById('googleBackupContainer').style.display = 'block';
+    }
+
+    const googleBackupBtn = document.getElementById('googleBackupBtn');
+    if (googleBackupBtn) {
+        googleBackupBtn.addEventListener('click', () => {
+            alert('구글 드라이브에 동기화를 시작합니다');
+            // 향후 gapi.client.drive 등을 사용하여 파일 업로드 로직 추가
+        });
+    }
 
     settingsTitleInput.addEventListener('input', (e) => {
         const newTitle = e.target.value.trim() || 'Planner';

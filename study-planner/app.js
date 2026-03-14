@@ -1,5 +1,5 @@
 /* ==========================================
-   1. 필수 변수 설정 (앱 최상단)
+   1. 필수 변수 설정 (앱 최상단 고정)
    ========================================== */
 const GOOGLE_CLIENT_ID = '1059241393010-dhcs8fm43uqppd65m113eqj4jk8qk6dt.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyBSmTQrvXqgFlReBfwGolfgSWlNLHU5_-s';
@@ -10,12 +10,12 @@ let gapiInited = false;
 let gisInited = false;
 let accessToken = null;
 
-const STORAGE_KEY = 'study_planner_app_data_v1';
+const STORAGE_KEY = 'study_planner_app_data_v2';
 const SETTINGS_KEY = 'study_planner_settings_v2';
 const DRIVE_FILE_NAME = 'planner_data.json';
 
 // ==========================================
-// 2. 제목 수정 기능
+// 2. 제목 수정 기능 (로컬스토리지 즉시 동기화)
 // ==========================================
 function openSettings() {
     const settingsModal = document.getElementById('settingsModal');
@@ -52,7 +52,7 @@ function closeModals() {
 }
 
 // ==========================================
-// 앱 메인 로직 시작
+// 앱 주 로직
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainTitle = document.getElementById('mainTitle');
     if (mainTitle) mainTitle.innerText = userSettings.appTitle;
 
-    // 탭 전환
+    // 탭 전환기 처리
     const navItems = document.querySelectorAll('.nav-item');
     const plannerView = document.getElementById('plannerView');
     const financeTab = document.getElementById('financeTab');
@@ -74,10 +74,9 @@ document.addEventListener('DOMContentLoaded', () => {
             navItems.forEach(n => n.classList.remove('active'));
             item.classList.add('active');
 
-            const target = item.dataset.tab;
-            currentTab = target;
+            currentTab = item.dataset.tab;
 
-            if (target === 'planner') {
+            if (currentTab === 'planner') {
                 plannerView.style.display = 'block';
                 financeTab.style.display = 'none';
                 daySelector.style.display = 'flex';
@@ -94,19 +93,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 3. 구글 드라이브 동기화 기능 (GIS 및 GAPI)
+    // 3. 구글 연동 및 드라이브 저장 로직
     // ==========================================
     const authBtn = document.getElementById('authBtn');
     const syncBtn = document.getElementById('syncBtn');
     const syncStatus = document.getElementById('syncStatus');
 
-    // GAPI 로드
-    function gapiLoaded() {
+    function checkGoogleInit() {
         if (window.gapi) {
             gapi.load('client', initializeGapiClient);
+        } else {
+            setTimeout(checkGoogleInit, 200);
         }
     }
-    window.gapiLoaded = gapiLoaded;
+    checkGoogleInit();
 
     async function initializeGapiClient() {
         await gapi.client.init({
@@ -114,11 +114,10 @@ document.addEventListener('DOMContentLoaded', () => {
             discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
         });
         gapiInited = true;
-        checkAuthSetup();
+        initGsi();
     }
 
-    // GSI 로드
-    function gsiLoaded() {
+    function initGsi() {
         if (window.google) {
             tokenClient = google.accounts.oauth2.initTokenClient({
                 client_id: GOOGLE_CLIENT_ID,
@@ -128,33 +127,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         accessToken = tokenResponse.access_token;
                         if (authBtn) authBtn.style.display = 'none';
                         if (syncBtn) syncBtn.style.display = 'block';
-                        if (syncStatus) syncStatus.innerText = "✅ 구글 계정 연결됨 (드라이브 접근 가능)";
-                        // 로그인 성공 시 드라이브에서 데이터 자동 로드 시도
+                        if (syncStatus) syncStatus.innerText = "✅ 설정 됨: 클라우드로 저장 가능";
                         loadFromDrive();
                     }
                 },
             });
             gisInited = true;
-            checkAuthSetup();
-        }
-    }
-    window.gsiLoaded = gsiLoaded;
-
-    function checkAuthSetup() {
-        if (gapiInited && gisInited) {
-            if (syncStatus && syncStatus.innerText.includes("로드")) {
-                syncStatus.innerText = "구글 계정을 연결하여 자동 백업을 활성화하세요.";
-            }
+        } else {
+            setTimeout(initGsi, 200);
         }
     }
 
     if (authBtn) {
         authBtn.addEventListener('click', () => {
             if (tokenClient) {
-                // 권한 요청 팝업 띄우기
                 tokenClient.requestAccessToken({ prompt: 'consent' });
             } else {
-                syncStatus.innerText = "구글 라이브러리를 준비 중입니다. 잠시 후 다시 시도해주세요.";
+                syncStatus.innerText = "로딩 중... 다시 시도해주세요.";
             }
         });
     }
@@ -165,20 +154,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 드라이브에 저장 (Sync)
     async function syncToDrive() {
         if (!accessToken) return;
-        if (syncStatus) syncStatus.innerText = "☁️ 드라이브에 동기화 중...";
+        if (syncStatus) syncStatus.innerText = "☁️ 업로드 중...";
 
         try {
             const allData = {
-                appData: JSON.parse(localStorage.getItem(STORAGE_KEY)) || getDefaultData(),
+                appData,
                 settings: JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { appTitle: 'Planner' }
             };
             const fileContent = JSON.stringify(allData);
             const file = new Blob([fileContent], { type: 'application/json' });
 
-            // 1. 기존 파일 검색
             const response = await gapi.client.drive.files.list({
                 q: `name='${DRIVE_FILE_NAME}' and trashed=false`,
                 spaces: 'drive',
@@ -186,24 +173,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const files = response.result.files;
 
-            const metadata = {
-                name: DRIVE_FILE_NAME,
-                mimeType: 'application/json'
-            };
-
+            const metadata = { name: DRIVE_FILE_NAME, mimeType: 'application/json' };
             const form = new FormData();
             form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
             form.append('file', file);
 
-            let fetchOptions = {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + accessToken },
-                body: form
-            };
+            let fetchOptions = { method: 'POST', headers: { 'Authorization': 'Bearer ' + accessToken }, body: form };
             let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
 
             if (files && files.length > 0) {
-                // 기존 파일 덮어쓰기 (PATCH)
                 const fileId = files[0].id;
                 fetchOptions.method = 'PATCH';
                 url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
@@ -211,8 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const res = await fetch(url, fetchOptions);
             if (res.ok) {
-                if (syncStatus) syncStatus.innerText = "✅ 백업 완료!";
-                alert('모든 데이터가 구글 드라이브에 성공적으로 저장되었습니다!');
+                if (syncStatus) syncStatus.innerText = "✅ 백업이 안전하게 완료되었습니다!";
             } else {
                 throw new Error('Upload failed');
             }
@@ -222,7 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 드라이브에서 불러오기 (Load)
     async function loadFromDrive() {
         if (!accessToken) return;
         try {
@@ -235,23 +211,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (files && files.length > 0) {
                 const fileId = files[0].id;
-                const fileRes = await gapi.client.drive.files.get({
-                    fileId: fileId,
-                    alt: 'media'
-                });
-
+                const fileRes = await gapi.client.drive.files.get({ fileId: fileId, alt: 'media' });
                 const cloudData = fileRes.result;
+
                 if (cloudData && cloudData.appData) {
-                    if (confirm("구글 드라이브에 백업된 데이터가 있습니다. 불러오시겠습니까?\n(현재 기기의 데이터는 덮어씌워집니다)")) {
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(cloudData.appData));
+                    if (confirm("구글 드라이브에 저장된 기존 데이터가 있습니다. 불러오시겠습니까?")) {
+                        appData = cloudData.appData;
+                        saveData();
                         if (cloudData.settings) {
                             localStorage.setItem(SETTINGS_KEY, JSON.stringify(cloudData.settings));
-                            userSettings = cloudData.settings;
-                            if (mainTitle) mainTitle.innerText = userSettings.appTitle;
+                            if (mainTitle) mainTitle.innerText = cloudData.settings.appTitle;
                         }
-                        appData = cloudData.appData;
                         renderPlanner();
-                        alert("클라우드 데이터를 성공적으로 불러왔습니다!");
+                        alert("데이터를 성공적으로 불러왔습니다!");
                     }
                 }
             }
@@ -260,22 +232,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 초기화를 보장하기 위해 수동 트리거 시도
-    if (window.gapi) window.gapiLoaded();
-    if (window.google) window.gsiLoaded();
-
     // ==========================================
-    // 4. 데이터 및 요일 관리
+    // 4. 앱 데이터 저장 & 요일 처리 구성
     // ==========================================
-    const today = new Date();
-
     function getDefaultData() {
         const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const weekData = {};
         weekDays.forEach(day => {
             weekData[day] = {
                 school: Array.from({ length: 8 }, (_, i) => ({
-                    period: i + 1, subject: null, time: '', location: null, color: null, transit: 0
+                    period: i + 1, subject: '', time: '', location: '', color: 'var(--color-kor)', transit: 0
                 })),
                 evening: [],
                 missions: { homework: [], exercise: [] }
@@ -291,6 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
 
+    const today = new Date();
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const korDays = ['월', '화', '수', '목', '금', '토'];
     const currentDayOfWeek = today.getDay();
@@ -308,7 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.createElement('button');
         btn.className = `day-btn ${index === activeDayIndex ? 'active' : ''}`;
         if (day === 'Sat') btn.classList.add('sat');
-
         btn.innerHTML = `<span class="day-name">${korDays[index]}</span><span class="date-num">${dateNum}</span>`;
         btn.addEventListener('click', () => {
             document.querySelector('.day-btn.active').classList.remove('active');
@@ -320,20 +286,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 5. 학교 1~8교시 인라인 텍스트 및 자습 계산
+    // 5. 자습 시간 계산 로직
     // ==========================================
     function calculateFreeTime() {
         const dayData = appData.schedules[currentSelectedDay];
         if (!dayData) return;
 
-        // 하루 자유 시간: 15시간 (900분)
-        let totalMins = 900;
+        let totalMins = 900; // 하루 기본 자유시간: 15시간 (오전9시~자정)
 
         if (currentSelectedDay !== 'Sat') {
             dayData.school.forEach(s => {
-                if (s.subject) {
+                if (s.subject && s.subject.trim() !== '') {
                     totalMins -= 50;
-                    if (s.transit) totalMins -= parseInt(s.transit);
                 }
             });
         }
@@ -358,13 +322,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ==========================================
+    // 6. UI 렌더 및 1~8교시 인풋 대응
+    // ==========================================
     const schoolSchedule = document.getElementById('schoolSchedule');
     const plannerTabEvening = document.getElementById('plannerTab');
 
     function renderPlanner() {
         calculateFreeTime();
 
-        // 1. 학교 정규 시간표 렌더링 (1~8교시)
+        // 학교 시간표 1~8교시
         if (currentSelectedDay === 'Sat') {
             if (schoolSchedule && schoolSchedule.parentElement) schoolSchedule.parentElement.style.display = 'none';
             if (document.getElementById('transitDivider')) document.getElementById('transitDivider').style.display = 'none';
@@ -379,8 +346,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     div.className = 'period-item';
                     div.style.padding = '8px 16px';
                     div.style.marginBottom = '8px';
+                    div.style.background = 'var(--surface-color)';
 
-                    // 직접 타이핑할 수 있는 Input 필드로 변경 (1~8교시)
                     div.innerHTML = `
                         <div class="period-num" style="min-width:30px; font-weight:bold; color:var(--primary-color);">${item.period}</div>
                         <div style="flex-grow:1; display:flex; align-items:center;">
@@ -390,10 +357,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const inputElement = div.querySelector('input');
                     inputElement.addEventListener('input', (e) => {
-                        item.subject = e.target.value.trim() || null;
-                        item.color = "var(--color-kor)"; // Default
+                        item.subject = e.target.value;
                         saveData();
-                        calculateFreeTime(); // 타이핑 시 즉시 자습시간 업데이트
+                        calculateFreeTime();
                     });
 
                     schoolSchedule.appendChild(div);
@@ -401,7 +367,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 2. 저녁 학원 시간표 렌더링
+        // 방과 후 & 학원
         if (plannerTabEvening) {
             plannerTabEvening.innerHTML = '';
             const evData = appData.schedules[currentSelectedDay].evening;
@@ -425,44 +391,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 plannerTabEvening.appendChild(div);
             });
 
+            // 추가 버튼
             const clicker = document.createElement('div');
             clicker.className = 'evening-empty-clicker';
-            clicker.innerHTML = `<span><span class="material-symbols-rounded" style="vertical-align:middle;margin-right:8px;font-size:20px;">add_circle</span>저녁(학원) 일정 추가</span>`;
+            clicker.innerHTML = `<span><span class="material-symbols-rounded" style="vertical-align:middle;margin-right:8px;font-size:20px;">add_circle</span>학원/저녁 일정 추가</span>`;
             clicker.addEventListener('click', () => openPlannerModal('evening', -1, null));
             plannerTabEvening.appendChild(clicker);
         }
 
-        // 3. 미션 리스트
+        // 데일리 미션
         const renderList = (data, containerId, grpName) => {
             const container = document.getElementById(containerId);
             if (!container) return;
             container.innerHTML = '';
-            if (data.length === 0) { container.innerHTML = `<div class="empty-state" style="padding:16px;">추가된 계획이 없습니다.</div>`; return; }
+            if (data.length === 0) { container.innerHTML = `<div class="empty-state" style="padding:16px;">미션이 없습니다.</div>`; return; }
             data.forEach((m, idx) => {
                 const li = document.createElement('li'); li.className = `mission-item ${m.done ? 'done' : ''}`;
-                const icon = m.category === '운동' ? 'fitness_center' : (m.category === '읽기' ? 'auto_stories' : 'menu_book');
-
                 li.innerHTML = `
                     <div class="mission-checkbox"><span class="material-symbols-rounded">check</span></div>
                     <div class="mission-content">
                         <span class="mission-text">${m.text}</span>
-                        <div class="mission-meta">
-                            <span class="meta-item"><span class="material-symbols-rounded" style="font-size:14px">${icon}</span>${m.category}</span>
-                        </div>
                     </div>
                     <button class="mission-delete"><span class="material-symbols-rounded">close</span></button>
                 `;
-
                 li.addEventListener('click', (e) => {
                     if (e.target.closest('.mission-delete')) return;
-                    if (e.target.closest('.mission-checkbox')) {
-                        m.done = !m.done;
-                        saveData(); renderPlanner();
-                        return;
-                    }
+                    if (e.target.closest('.mission-checkbox')) { m.done = !m.done; saveData(); renderPlanner(); return; }
                     openMissionModal(grpName, idx, m);
                 });
-
                 li.querySelector('.mission-delete').addEventListener('click', (e) => { data.splice(idx, 1); saveData(); renderPlanner(); });
                 container.appendChild(li);
             });
@@ -472,29 +428,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 6. 학원 및 미션 팝업 모달 관리
+    // 7. 모달 & FAB (플러스) 버튼 이벤트 처리
     // ==========================================
     const planModal = document.getElementById('addPlannerModal');
-    let planTarget = 'evening';
     function openPlannerModal(type, idx, item) {
-        planTarget = type;
         document.getElementById('plannerModalTitle').textContent = item ? '학원/방과후 변경' : '학원/방과후 추가';
-
         document.getElementById('inputPeriodIdx').value = idx;
-        document.getElementById('inputSubject').value = item && item.subject ? item.subject : '';
+        document.getElementById('inputSubject').value = item ? item.subject : '';
+        document.getElementById('inputStartTime').value = item && item.time ? item.time.split('-')[0].trim() : '18:00';
+        document.getElementById('inputEndTime').value = item && item.time ? item.time.split('-')[1].trim() : '20:00';
+        document.getElementById('inputTransit').value = item ? item.transit : '';
+        document.getElementById('inputLocation').value = item ? item.location : '';
 
-        if (item && item.time) {
-            const spl = item.time.split('-');
-            document.getElementById('inputStartTime').value = spl[0] ? spl[0].trim() : '';
-            document.getElementById('inputEndTime').value = spl[1] ? spl[1].trim() : '';
-        } else {
-            document.getElementById('inputStartTime').value = '18:00';
-            document.getElementById('inputEndTime').value = '20:00';
-        }
-        document.getElementById('inputTransit').value = item && item.transit ? item.transit : '';
-        document.getElementById('inputLocation').value = item && item.location ? item.location : '';
-
-        if (item && item.color) { document.querySelectorAll('input[name="subjectColor"]').forEach(r => { if (r.value === item.color) r.checked = true; }); }
         if (planModal) planModal.classList.add('show');
     }
 
@@ -516,16 +461,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    const addHwBtn = document.getElementById('addHomeworkBtn');
-    if (addHwBtn) addHwBtn.addEventListener('click', () => openMissionModal('homework', -1, null));
-    const addExBtn = document.getElementById('addExerciseBtn');
-    if (addExBtn) addExBtn.addEventListener('click', () => openMissionModal('exercise', -1, null));
-
     const missionModal = document.getElementById('addMissionModal');
     function openMissionModal(grp, idx, item) {
         document.getElementById('inputMissionGrp').value = grp;
         document.getElementById('inputMissionId').value = idx;
-        document.getElementById('missionModalTitle').textContent = item ? '수정' : '추가';
+        document.getElementById('missionModalTitle').textContent = item ? '상세 수정' : '할 일 추가';
         document.getElementById('inputMissionText').value = item ? item.text : '';
         if (missionModal) missionModal.classList.add('show');
     }
@@ -549,15 +489,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 최하단 플로팅 액션 버튼(+)
+    if (document.getElementById('addHomeworkBtn')) document.getElementById('addHomeworkBtn').addEventListener('click', () => openMissionModal('homework', -1, null));
+    if (document.getElementById('addExerciseBtn')) document.getElementById('addExerciseBtn').addEventListener('click', () => openMissionModal('exercise', -1, null));
+
     const mainFab = document.getElementById('mainFab');
     if (mainFab) {
         mainFab.addEventListener('click', () => {
             if (currentTab === 'planner') openPlannerModal('evening', -1, null);
-            else document.getElementById('addFinanceModal').classList.add('show');
+            else document.getElementById('addFinanceModal').classList.add('show'); // stub for finance
         });
     }
 
-    // 렌더 실행
+    // 초기 렌더링 호출
     renderPlanner();
 });

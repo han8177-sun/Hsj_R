@@ -24,7 +24,7 @@
         <!-- Header -->
         <header class="glass-header">
             <div class="top-bar">
-                <div class="logo-area" id="logoArea" onclick="openSettings()">
+                <div class="logo-area" id="logoArea" onclick="openSettings()" style="cursor: pointer;">
                     <span class="material-symbols-rounded logo-icon" id="mainIcon">edit_calendar</span>
                     <h1 id="mainTitle">Planner</h1>
                     <span style="font-size: 12px; opacity: 0.3; margin-left:5px;">✏️</span>
@@ -36,111 +36,115 @@
             <div class="day-selector" id="daySelector"></div>
         </header>
 
-        <!-- ======================= PLANNER TAB ======================= -->
-        <main class="timeline-container nav-padded" id="plannerTab">
-            <!-- Free Time Widget -->
-            <div class="summary-widget">
-                <div class="summary-icon">
-                    <span class="material-symbols-rounded">hourglass_empty</span>
+        <main id="mainContent">
+            <!-- ======================= PLANNER VIEW ======================= -->
+            <div id="plannerView" class="tab-content timeline-container nav-padded">
+                <!-- Free Time Widget -->
+                <div class="summary-widget">
+                    <div class="summary-icon">
+                        <span class="material-symbols-rounded">hourglass_empty</span>
+                    </div>
+                    <div class="summary-text">
+                        <span class="summary-label">오늘의 남은 자습(여유) 시간</span>
+                        <strong class="summary-value" id="freeTimeDisplay">계산 중...</strong>
+                    </div>
                 </div>
-                <div class="summary-text">
-                    <span class="summary-label">오늘의 남은 자습(여유) 시간</span>
-                    <strong class="summary-value" id="freeTimeDisplay">계산 중...</strong>
+
+                <!-- School Context -->
+                <section class="timeline-section">
+                    <div class="section-header">
+                        <h2><span class="material-symbols-rounded">school</span> 학교 시간표</h2>
+                    </div>
+                    <div class="period-list" id="schoolSchedule"></div>
+                </section>
+
+                <div class="transit-divider" id="transitDivider">
+                    <div class="transit-icon-wrap">
+                        <span class="material-symbols-rounded">directions_walk</span>
+                        <span>하교 (16:40 이후)</span>
+                    </div>
                 </div>
+
+                <!-- Academy Context -->
+                <section class="timeline-section">
+                    <div class="section-header">
+                        <h2><span class="material-symbols-rounded">menu_book</span> 방과 후 & 학원</h2>
+                    </div>
+                    <div class="evening-grid">
+                        <div class="time-rulers">
+                            <span>18:00</span><span>19:00</span><span>20:00</span>
+                            <span>21:00</span><span>22:00</span><span>23:00</span><span>24:00</span>
+                        </div>
+                        <div class="evening-blocks" id="plannerTab">
+                            <div class="evening-empty-clicker" onclick="document.getElementById('mainFab').click()">
+                                <span><span class="material-symbols-rounded"
+                                        style="vertical-align:middle;margin-right:8px;font-size:20px;">add_circle</span>여기를
+                                    눌러 학원/저녁 일정을 추가하세요</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Daily Missions -->
+                <section class="timeline-section mission-section">
+                    <div class="section-header" style="justify-content: space-between;">
+                        <h2><span class="material-symbols-rounded">checklist</span> 데일리 미션</h2>
+                    </div>
+                    <div class="mission-cards">
+                        <div class="mission-card">
+                            <div class="mission-header">
+                                <h3>할 일 / 숙제</h3>
+                                <button class="icon-btn small-btn" id="addHomeworkBtn"><span
+                                        class="material-symbols-rounded">add</span></button>
+                            </div>
+                            <ul class="mission-list" id="homeworkList"></ul>
+                        </div>
+                        <div class="mission-card" style="margin-top: 16px;">
+                            <div class="mission-header">
+                                <h3>운동 / 루틴</h3>
+                                <button class="icon-btn small-btn" id="addExerciseBtn"><span
+                                        class="material-symbols-rounded">add</span></button>
+                            </div>
+                            <ul class="mission-list" id="exerciseList"></ul>
+                        </div>
+                    </div>
+                </section>
             </div>
 
-            <!-- School Context -->
-            <section class="timeline-section" id="schoolSection">
-                <div class="section-header">
-                    <h2><span class="material-symbols-rounded">school</span> 학교 시간표</h2>
-                </div>
-                <div class="period-list" id="schoolList"></div>
-            </section>
+            <!-- ======================= FINANCE VIEW ======================= -->
+            <div id="financeTab" class="tab-content finance-container nav-padded" style="display: none;">
+                <!-- Dashboard -->
+                <section class="finance-dashboard">
+                    <div class="balance-card">
+                        <span class="fc-label">이번 달 총 잔액</span>
+                        <strong class="fc-value balance" id="totalBalanceDisplay">0원</strong>
+                    </div>
+                    <div class="flow-cards">
+                        <div class="flow-card income">
+                            <div class="flow-icon"><span class="material-symbols-rounded">arrow_downward</span></div>
+                            <div class="flow-text">
+                                <span class="fc-label">수입 (Income)</span>
+                                <strong class="fc-value txt-blue" id="totalIncomeDisplay">0원</strong>
+                            </div>
+                        </div>
+                        <div class="flow-card expense">
+                            <div class="flow-icon"><span class="material-symbols-rounded">arrow_upward</span></div>
+                            <div class="flow-text">
+                                <span class="fc-label">지출 (Expense)</span>
+                                <strong class="fc-value txt-red" id="totalExpenseDisplay">0원</strong>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-            <div class="transit-divider" id="transitDivider">
-                <div class="transit-icon-wrap">
-                    <span class="material-symbols-rounded">directions_walk</span>
-                    <span>하교 (16:40 이후)</span>
-                </div>
+                <!-- Transactions List -->
+                <section class="transactions-section">
+                    <div class="section-header" style="justify-content: space-between;">
+                        <h2>이번 달 내역</h2>
+                    </div>
+                    <div class="transaction-list" id="transactionList"></div>
+                </section>
             </div>
-
-            <!-- Academy Context -->
-            <section class="timeline-section" id="academySection">
-                <div class="section-header">
-                    <h2><span class="material-symbols-rounded">menu_book</span> 방과 후 & 학원</h2>
-                </div>
-                <div class="evening-grid" id="eveningContainer">
-                    <div class="time-rulers">
-                        <span>18:00</span><span>19:00</span><span>20:00</span>
-                        <span>21:00</span><span>22:00</span><span>23:00</span><span>24:00</span>
-                    </div>
-                    <div class="evening-blocks" id="eveningBlocks">
-                        <div class="evening-empty-clicker" id="eveningClicker">
-                            <span>여기를 눌러 학원/저녁 일정을 추가하세요</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Daily Missions -->
-            <section class="timeline-section mission-section">
-                <div class="section-header" style="justify-content: space-between;">
-                    <h2><span class="material-symbols-rounded">checklist</span> 데일리 미션</h2>
-                </div>
-                <div class="mission-cards">
-                    <div class="mission-card">
-                        <div class="mission-header">
-                            <h3>할 일 / 숙제</h3>
-                            <button class="icon-btn small-btn" id="addHomeworkBtn"><span
-                                    class="material-symbols-rounded">add</span></button>
-                        </div>
-                        <ul class="mission-list" id="homeworkList"></ul>
-                    </div>
-                    <div class="mission-card" style="margin-top: 16px;">
-                        <div class="mission-header">
-                            <h3>운동 / 루틴</h3>
-                            <button class="icon-btn small-btn" id="addExerciseBtn"><span
-                                    class="material-symbols-rounded">add</span></button>
-                        </div>
-                        <ul class="mission-list" id="exerciseList"></ul>
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <!-- ======================= FINANCE TAB ======================= -->
-        <main class="finance-container nav-padded" id="financeTab" style="display: none;">
-            <!-- Dashboard -->
-            <section class="finance-dashboard">
-                <div class="balance-card">
-                    <span class="fc-label">이번 달 총 잔액</span>
-                    <strong class="fc-value balance" id="totalBalanceDisplay">0원</strong>
-                </div>
-                <div class="flow-cards">
-                    <div class="flow-card income">
-                        <div class="flow-icon"><span class="material-symbols-rounded">arrow_downward</span></div>
-                        <div class="flow-text">
-                            <span class="fc-label">수입 (Income)</span>
-                            <strong class="fc-value txt-blue" id="totalIncomeDisplay">0원</strong>
-                        </div>
-                    </div>
-                    <div class="flow-card expense">
-                        <div class="flow-icon"><span class="material-symbols-rounded">arrow_upward</span></div>
-                        <div class="flow-text">
-                            <span class="fc-label">지출 (Expense)</span>
-                            <strong class="fc-value txt-red" id="totalExpenseDisplay">0원</strong>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Transactions List -->
-            <section class="transactions-section">
-                <div class="section-header" style="justify-content: space-between;">
-                    <h2>이번 달 내역</h2>
-                </div>
-                <div class="transaction-list" id="transactionList"></div>
-            </section>
         </main>
 
         <!-- Contextual FAB -->
@@ -399,7 +403,7 @@
 
     </div>
 
-    <!-- 4. 연결 확인: 구글 공식 라이브러리와 app.js를 순서대로 명시 -->
+    <!-- 스크립트 순서 보장 -->
     <script async defer src="https://apis.google.com/js/api.js"></script>
     <script async defer src="https://accounts.google.com/gsi/client"></script>
     <script src="app.js"></script>

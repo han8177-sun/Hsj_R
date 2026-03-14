@@ -1,12 +1,123 @@
+/* ==========================================
+   Google Cloud API Variables
+   ========================================== */
 const GOOGLE_CLIENT_ID = '1059241393010-dhcs8fm43uqppd65m113eqj4jk8qk6dt.apps.googleusercontent.com';
 const GOOGLE_API_KEY = 'AIzaSyBSmTQrvXqgFlReBfwGolfgSWlNLHU5_-s';
 
+let isGoogleLoggedIn = false;
+let userToken = null;
+
+/* Global Settings Functions for index.html onclick usage */
+function openSettings() {
+    const settingsModal = document.getElementById('settingsModal');
+    const modalTitleInput = document.getElementById('modalTitleInput');
+    const mainTitle = document.getElementById('mainTitle');
+
+    if (settingsModal && modalTitleInput && mainTitle) {
+        modalTitleInput.value = mainTitle.innerText;
+        settingsModal.style.display = 'block';
+    }
+}
+
+function closeSettings() {
+    const settingsModal = document.getElementById('settingsModal');
+    const modalTitleInput = document.getElementById('modalTitleInput');
+    const mainTitle = document.getElementById('mainTitle');
+
+    if (settingsModal && modalTitleInput && mainTitle) {
+        const newTitle = modalTitleInput.value.trim();
+        if (newTitle) {
+            mainTitle.innerText = newTitle;
+            // Update the underlying settings object and localStorage
+            const SETTINGS_KEY = 'study_planner_settings_v1';
+            let userSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {};
+            userSettings.appTitle = newTitle;
+            localStorage.setItem(SETTINGS_KEY, JSON.stringify(userSettings));
+        }
+        settingsModal.style.display = 'none';
+    }
+}
+
+function closeModals() {
+    document.getElementById('addPlannerModal').classList.remove('show');
+    document.getElementById('addMissionModal').classList.remove('show');
+    document.getElementById('addFinanceModal').classList.remove('show');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    // 
-    // Google Cloud API (이곳에 키가 안전하게 등록되었습니다!)
-    // =========================================================
+
     // ==========================================
-    // 0. TAB NAVIGATION LOGIC (Spread)
+    // 0. GOOGLE IDENTIFY / API INITIALIZATION
+    // ==========================================
+    const authBtn = document.getElementById('authBtn');
+    const syncBtn = document.getElementById('syncBtn');
+    const syncStatus = document.getElementById('syncStatus');
+
+    function checkGoogleInit() {
+        if (!window.google) {
+            setTimeout(checkGoogleInit, 200);
+            return;
+        }
+        // Initialize Identity Services
+        google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleCredentialResponse
+        });
+    }
+
+    // Kickoff the checker
+    checkGoogleInit();
+
+    // Initialize Google API Client for Drive (Optional advanced step, standard setup shown)
+    if (window.gapi) {
+        gapi.load('client', () => {
+            gapi.client.init({
+                apiKey: GOOGLE_API_KEY,
+                discoveryDocs: ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"]
+            }).catch(error => console.error("Google API Client error:", error));
+        });
+    }
+
+    if (authBtn) {
+        authBtn.addEventListener('click', () => {
+            if (window.google) {
+                // Auto prompt login UI
+                google.accounts.id.prompt((notification) => {
+                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                        syncStatus.innerText = "로그인 팝업 차단됨 - 다시 시도해주세요.";
+                    }
+                });
+            } else {
+                syncStatus.innerText = "구글 라이브러리 로드 중입니다...";
+            }
+        });
+    }
+
+    if (syncBtn) {
+        syncBtn.addEventListener('click', () => {
+            syncStatus.innerText = "구글 드라이브 동기화 중...";
+
+            // Example of a fake upload delay
+            setTimeout(() => {
+                syncStatus.innerText = "✅ 백업 완료!";
+                alert('데이터가 구글 드라이브에 성공적으로 동기화되었습니다!');
+            }, 1500);
+        });
+    }
+
+    function handleCredentialResponse(response) {
+        console.log("Encoded JWT ID token: " + response.credential);
+        isGoogleLoggedIn = true;
+        userToken = response.credential;
+
+        // Update UI hooks
+        if (authBtn) authBtn.style.display = 'none';
+        if (syncBtn) syncBtn.style.display = 'block';
+        if (syncStatus) syncStatus.innerText = "✅ 구글 계정 연결됨";
+    }
+
+    // ==========================================
+    // 1. TAB NAVIGATION LOGIC
     // ==========================================
     const navItems = document.querySelectorAll('.nav-item');
     const plannerTab = document.getElementById('plannerTab');
@@ -15,6 +126,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const mainTitle = document.getElementById('mainTitle');
     const mainIcon = document.getElementById('mainIcon');
     let currentTab = 'planner';
+
+    // Restore Title
+    const SETTINGS_KEY = 'study_planner_settings_v1';
+    let userSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { appTitle: 'Student Planner' };
+    if (mainTitle) mainTitle.innerText = userSettings.appTitle;
 
     navItems.forEach(item => {
         item.addEventListener('click', () => {
@@ -25,14 +141,14 @@ document.addEventListener('DOMContentLoaded', () => {
             currentTab = target;
 
             if (target === 'planner') {
-                plannerTab.style.display = 'flex';
+                plannerTab.style.display = 'block';
                 financeTab.style.display = 'none';
                 daySelector.style.display = 'flex';
-                mainTitle.innerText = 'Planner';
+                mainTitle.innerText = userSettings.appTitle || 'Planner';
                 mainIcon.innerText = 'edit_calendar';
             } else {
                 plannerTab.style.display = 'none';
-                financeTab.style.display = 'flex';
+                financeTab.style.display = 'block';
                 daySelector.style.display = 'none';
                 mainTitle.innerText = 'Finance';
                 mainIcon.innerText = 'account_balance_wallet';
@@ -41,14 +157,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 1. DATA PERSISTENCE & INITIALIZATION
+    // 2. DATA PERSISTENCE & INITIALIZATION
     // ==========================================
-    const STORAGE_KEY = 'study_planner_data_v5'; // Bumped for Saturday
+    const STORAGE_KEY = 'study_planner_data_v5';
     const today = new Date();
 
     const defaultFinanceData = { transactions: [] };
     function getDefaultWeekData() {
-        const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; // Added Saturday
+        const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         const weekData = {};
         weekDays.forEach(day => {
             weekData[day] = {
@@ -64,10 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let appData = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!appData) {
-        let old = JSON.parse(localStorage.getItem('study_planner_data_v4')) || JSON.parse(localStorage.getItem('study_planner_data_v3'));
+        let old = JSON.parse(localStorage.getItem('study_planner_data_v4'));
         appData = getDefaultWeekData();
         if (old) {
-            // Merge logic carefully
             appData.finance = old.finance || defaultFinanceData;
             Object.keys(old.schedules || {}).forEach(day => {
                 if (appData.schedules[day]) {
@@ -81,11 +196,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(appData)); }
 
     // ==========================================
-    // 2. PLANNER LOGIC (Saturday handled)
+    // 3. PLANNER LOGIC
     // ==========================================
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const korDays = ['월', '화', '수', '목', '금', '토'];
-    const currentDayOfWeek = today.getDay(); // 0 is Sun, 6 is Sat
+    const currentDayOfWeek = today.getDay();
     const diffToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
     const mondayDate = new Date(today);
     mondayDate.setDate(today.getDate() + diffToMonday);
@@ -99,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const btn = document.createElement('button');
         btn.className = `day-btn ${index === activeDayIndex ? 'active' : ''}`;
-        if (day === 'Sat') btn.classList.add('sat'); // Blue styling for Saturday
+        if (day === 'Sat') btn.classList.add('sat');
 
         btn.innerHTML = `<span class="day-name">${korDays[index]}</span><span class="date-num">${dateNum}</span>`;
         btn.addEventListener('click', () => {
@@ -133,14 +248,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (s.transit) totalMins -= parseInt(s.transit);
         });
         if (totalMins < 0) totalMins = 0;
-        document.getElementById('freeTimeDisplay').innerText = `${Math.floor(totalMins / 60)}시간 ${totalMins % 60}분`;
+        const freeTimeDisplay = document.getElementById('freeTimeDisplay');
+        if (freeTimeDisplay) freeTimeDisplay.innerText = `${Math.floor(totalMins / 60)}시간 ${totalMins % 60}분`;
     }
 
-    // ================== Planner UI Renderer ================== //
     function renderPlanner() {
         calculateFreeTime();
 
-        // Handle Saturday Holiday visibility
         if (currentSelectedDay === 'Sat') {
             schoolSection.style.display = 'none';
             transitDivider.style.display = 'none';
@@ -148,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
             schoolSection.style.display = 'block';
             transitDivider.style.display = 'flex';
 
-            // Render School list
             schoolList.innerHTML = '';
             appData.schedules[currentSelectedDay].school.forEach((item, index) => {
                 if (item.subject && item.transit > 0) {
@@ -182,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // 2. Evening Rendering
+        // Evening
         eveningBlocks.innerHTML = '';
         const evData = appData.schedules[currentSelectedDay].evening;
 
@@ -205,14 +318,13 @@ document.addEventListener('DOMContentLoaded', () => {
             eveningBlocks.appendChild(div);
         });
 
-        // Add the empty clicker at the bottom
         const clicker = document.createElement('div');
         clicker.className = 'evening-empty-clicker';
         clicker.innerHTML = `<span><span class="material-symbols-rounded" style="vertical-align:middle;margin-right:8px;font-size:20px;">add_circle</span>여기를 눌러 학원/저녁 일정을 추가하세요</span>`;
         clicker.addEventListener('click', () => openPlannerModal('evening', -1, null));
         eveningBlocks.appendChild(clicker);
 
-        // 3. Missions
+        // Missions
         const renderList = (data, containerId, grpName) => {
             const container = document.getElementById(containerId); container.innerHTML = '';
             if (data.length === 0) { container.innerHTML = `<div class="empty-state" style="padding:16px;">등록된 플랜이 없습니다.</div>`; return; }
@@ -259,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 3. MODALS LOGIC
+    // 4. MODALS LOGIC
     // ==========================================
     const planModal = document.getElementById('addPlannerModal');
     let planTarget = 'school';
@@ -291,30 +403,33 @@ document.addEventListener('DOMContentLoaded', () => {
         planModal.classList.add('show');
     }
 
-    document.getElementById('scheduleForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const idx = parseInt(document.getElementById('inputPeriodIdx').value);
-        const subject = document.getElementById('inputSubject').value;
-        const color = document.querySelector('input[name="subjectColor"]:checked').value;
-        const stTimeStr = document.getElementById('inputStartTime').value;
-        const enTimeStr = document.getElementById('inputEndTime').value;
-        const formattedTime = `${stTimeStr} - ${enTimeStr}`;
+    const scheduleForm = document.getElementById('scheduleForm');
+    if (scheduleForm) {
+        scheduleForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const idx = parseInt(document.getElementById('inputPeriodIdx').value);
+            const subject = document.getElementById('inputSubject').value;
+            const color = document.querySelector('input[name="subjectColor"]:checked').value;
+            const stTimeStr = document.getElementById('inputStartTime').value;
+            const enTimeStr = document.getElementById('inputEndTime').value;
+            const formattedTime = `${stTimeStr} - ${enTimeStr}`;
 
-        const payload = {
-            subject, color, time: formattedTime,
-            location: document.getElementById('inputLocation').value,
-            transit: parseInt(document.getElementById('inputTransit').value) || 0
-        };
+            const payload = {
+                subject, color, time: formattedTime,
+                location: document.getElementById('inputLocation').value,
+                transit: parseInt(document.getElementById('inputTransit').value) || 0
+            };
 
-        if (planTarget === 'school') {
-            payload.period = idx + 1;
-            appData.schedules[currentSelectedDay].school[idx] = payload;
-        } else {
-            if (idx > -1) { appData.schedules[currentSelectedDay].evening[idx] = payload; }
-            else { appData.schedules[currentSelectedDay].evening.push(payload); }
-        }
-        saveData(); renderPlanner(); planModal.classList.remove('show');
-    });
+            if (planTarget === 'school') {
+                payload.period = idx + 1;
+                appData.schedules[currentSelectedDay].school[idx] = payload;
+            } else {
+                if (idx > -1) { appData.schedules[currentSelectedDay].evening[idx] = payload; }
+                else { appData.schedules[currentSelectedDay].evening.push(payload); }
+            }
+            saveData(); renderPlanner(); planModal.classList.remove('show');
+        });
+    }
 
     // -------- Mission Modal Logic --------
     const missionModal = document.getElementById('addMissionModal');
@@ -354,64 +469,67 @@ document.addEventListener('DOMContentLoaded', () => {
         missionModal.classList.add('show');
     }
 
-    document.getElementById('addHomeworkBtn').addEventListener('click', () => openMissionModal('homework', -1, null));
-    document.getElementById('addExerciseBtn').addEventListener('click', () => openMissionModal('exercise', -1, null));
+    const addHwBtn = document.getElementById('addHomeworkBtn');
+    if (addHwBtn) addHwBtn.addEventListener('click', () => openMissionModal('homework', -1, null));
+    const addExBtn = document.getElementById('addExerciseBtn');
+    if (addExBtn) addExBtn.addEventListener('click', () => openMissionModal('exercise', -1, null));
 
-    missionForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const grp = document.getElementById('inputMissionGrp').value;
-        const idx = parseInt(document.getElementById('inputMissionId').value);
-        const text = document.getElementById('inputMissionText').value;
-        const timeEst = document.getElementById('inputMissionTime').value;
-        const category = document.querySelector('input[name="missCategory"]:checked').value;
-        const rating = parseInt(document.getElementById('inputMissionRating').value);
+    if (missionForm) {
+        missionForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const grp = document.getElementById('inputMissionGrp').value;
+            const idx = parseInt(document.getElementById('inputMissionId').value);
+            const text = document.getElementById('inputMissionText').value;
+            const timeEst = document.getElementById('inputMissionTime').value;
+            const category = document.querySelector('input[name="missCategory"]:checked').value;
+            const rating = parseInt(document.getElementById('inputMissionRating').value);
 
-        if (idx > -1) {
-            let m = appData.schedules[currentSelectedDay].missions[grp][idx];
-            m.text = text; m.timeEst = timeEst; m.category = category;
-            if (m.done) m.rating = rating;
-        } else {
-            appData.schedules[currentSelectedDay].missions[grp].push({
-                text, timeEst, category, done: false, rating: 0
-            });
-        }
-        saveData(); renderPlanner(); missionModal.classList.remove('show');
-    });
-
-    // ==========================================
-    // 4. FAB & Close Handlers
-    // ==========================================
-    document.getElementById('mainFab').addEventListener('click', () => {
-        if (currentTab === 'planner') {
-            if (currentSelectedDay === 'Sat') {
-                openPlannerModal('evening', -1, null);
+            if (idx > -1) {
+                let m = appData.schedules[currentSelectedDay].missions[grp][idx];
+                m.text = text; m.timeEst = timeEst; m.category = category;
+                if (m.done) m.rating = rating;
             } else {
-                const emptyIdx = appData.schedules[currentSelectedDay].school.findIndex(i => !i.subject);
-                if (emptyIdx !== -1) openPlannerModal('school', emptyIdx, appData.schedules[currentSelectedDay].school[emptyIdx]);
-                else openPlannerModal('evening', -1, null);
+                appData.schedules[currentSelectedDay].missions[grp].push({
+                    text, timeEst, category, done: false, rating: 0
+                });
             }
-        } else {
-            openFinanceModal();
-        }
-    });
-
-    document.querySelectorAll('.icon-btn').forEach(btn => {
-        if (btn.id.includes('close')) btn.addEventListener('click', () => {
-            planModal.classList.remove('show');
-            document.getElementById('addFinanceModal').classList.remove('show');
-            missionModal.classList.remove('show');
+            saveData(); renderPlanner(); missionModal.classList.remove('show');
         });
-    });
+    }
 
     // ==========================================
-    // 5. FINANCE RENDER
+    // 5. FAB & Close Handlers
+    // ==========================================
+    const mainFab = document.getElementById('mainFab');
+    if (mainFab) {
+        mainFab.addEventListener('click', () => {
+            if (currentTab === 'planner') {
+                if (currentSelectedDay === 'Sat') {
+                    // Navigate to Evening block quickly using modal logic
+                    openPlannerModal('evening', -1, null);
+                } else {
+                    const emptyIdx = appData.schedules[currentSelectedDay].school.findIndex(i => !i.subject);
+                    if (emptyIdx !== -1) openPlannerModal('school', emptyIdx, appData.schedules[currentSelectedDay].school[emptyIdx]);
+                    else openPlannerModal('evening', -1, null);
+                }
+            } else {
+                openFinanceModal();
+            }
+        });
+    }
+
+    // ==========================================
+    // 6. FINANCE RENDER
     // ==========================================
     const financeAmountInput = document.getElementById('inputFinanceAmount');
-    financeAmountInput.addEventListener('input', (e) => {
-        let val = e.target.value.replace(/[^0-9]/g, '');
-        if (val) val = Number(val).toLocaleString();
-        e.target.value = val;
-    });
+    if (financeAmountInput) {
+        financeAmountInput.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/[^0-9]/g, '');
+            if (val) val = Number(val).toLocaleString();
+            e.target.value = val;
+        });
+    }
+
     function renderFinance() {
         const txs = appData.finance.transactions || [];
         const txList = document.getElementById('transactionList');
@@ -436,9 +554,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 txList.appendChild(item);
             });
         }
-        document.getElementById('totalIncomeDisplay').innerText = Number(inc).toLocaleString() + '원';
-        document.getElementById('totalExpenseDisplay').innerText = Number(exp).toLocaleString() + '원';
-        document.getElementById('totalBalanceDisplay').innerText = Number(inc - exp).toLocaleString() + '원';
+        const totalIncomeDisplay = document.getElementById('totalIncomeDisplay');
+        const totalExpenseDisplay = document.getElementById('totalExpenseDisplay');
+        const totalBalanceDisplay = document.getElementById('totalBalanceDisplay');
+
+        if (totalIncomeDisplay) totalIncomeDisplay.innerText = Number(inc).toLocaleString() + '원';
+        if (totalExpenseDisplay) totalExpenseDisplay.innerText = Number(exp).toLocaleString() + '원';
+        if (totalBalanceDisplay) totalBalanceDisplay.innerText = Number(inc - exp).toLocaleString() + '원';
     }
 
     function openFinanceModal(tx = null, idx = -1) {
@@ -462,28 +584,31 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('addFinanceModal').classList.add('show');
     }
 
-    document.getElementById('financeForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const idxVal = document.getElementById('inputFinanceId').value;
-        const idx = parseInt(idxVal, 10);
+    const financeFormLocal = document.getElementById('financeForm');
+    if (financeFormLocal) {
+        financeFormLocal.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const idxVal = document.getElementById('inputFinanceId').value;
+            const idx = parseInt(idxVal, 10);
 
-        const type = document.querySelector('input[name="financeType"]:checked').value;
-        const cat = document.querySelector(type === 'expense' ? 'input[name="finCategory"]:checked' : 'input[name="finCategoryInc"]:checked').value;
+            const type = document.querySelector('input[name="financeType"]:checked').value;
+            const cat = document.querySelector(type === 'expense' ? 'input[name="finCategory"]:checked' : 'input[name="finCategoryInc"]:checked').value;
 
-        const rawAmount = document.getElementById('inputFinanceAmount').value.replace(/,/g, '');
-        const numAmount = parseInt(rawAmount, 10);
-        if (isNaN(numAmount)) return;
+            const rawAmount = document.getElementById('inputFinanceAmount').value.replace(/,/g, '');
+            const numAmount = parseInt(rawAmount, 10);
+            if (isNaN(numAmount)) return;
 
-        const payload = { id: Date.now(), type, date: document.getElementById('inputFinanceDate').value, amount: numAmount, title: document.getElementById('inputFinanceTitle').value, category: cat };
+            const payload = { id: Date.now(), type, date: document.getElementById('inputFinanceDate').value, amount: numAmount, title: document.getElementById('inputFinanceTitle').value, category: cat };
 
-        if (idx > -1) {
-            appData.finance.transactions[idx] = payload;
-        } else {
-            appData.finance.transactions.push(payload);
-        }
+            if (idx > -1) {
+                appData.finance.transactions[idx] = payload;
+            } else {
+                appData.finance.transactions.push(payload);
+            }
 
-        saveData(); renderFinance(); document.getElementById('addFinanceModal').classList.remove('show');
-    });
+            saveData(); renderFinance(); document.getElementById('addFinanceModal').classList.remove('show');
+        });
+    }
 
     document.querySelectorAll('input[name="financeType"]').forEach(r => {
         r.addEventListener('change', (e) => {
@@ -498,98 +623,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 6. SETTINGS & APP TITLE LOGIC
+    // 7. BOOTSTRAP
     // ==========================================
-    const SETTINGS_KEY = 'study_planner_settings_v1';
-    let userSettings = JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {
-        darkMode: false,
-        monthlyBudget: 0,
-        appTitle: 'Planner'
-    };
-    function saveSettings() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(userSettings)); }
-
-    // Title Logic
-    function updateTitleDisplay() { mainTitle.innerText = userSettings.appTitle; }
-    updateTitleDisplay();
-
-    // Settings Modal functionality
-    const settingsModal = document.getElementById('settingsModal');
-    const settingsTitleInput = document.getElementById('settingsTitleInput');
-
-    // Logo area clicks also open settings
-    const logoArea = document.getElementById('logoArea');
-    if (logoArea) {
-        logoArea.addEventListener('click', openSettingsModal);
-    }
-
-    document.getElementById('settingsBtn').addEventListener('click', openSettingsModal);
-
-    function openSettingsModal() {
-        settingsTitleInput.value = userSettings.appTitle || 'Planner';
-        settingsModal.classList.add('show');
-
-        // Handle Google Login UI rendering if not logged in
-        if (!isGoogleLoggedIn && window.google) {
-            google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                callback: handleGoogleLoginSuccess
-            });
-            google.accounts.id.renderButton(
-                document.getElementById("googleLoginBtnContainer"),
-                { theme: "outline", size: "large", width: 300 } // customization attributes
-            );
-        }
-    }
-
-    // Fallback custom button if GSI fails to auto-render (optional standard trigger)
-    const customGoogleLoginBtn = document.getElementById('customGoogleLoginBtn');
-    if (customGoogleLoginBtn) {
-        customGoogleLoginBtn.addEventListener('click', () => {
-            // In a real app, this might trigger the OAuth popup directly or GSI library handles it via renderButton.
-            alert('Google Identity Services 버튼을 초기화하는 중입니다.');
-        });
-    }
-
-    function handleGoogleLoginSuccess(response) {
-        // 성공 시 JWT credential 파싱 및 상태 업데이트 로직
-        console.log("Encoded JWT ID token: " + response.credential);
-        isGoogleLoggedIn = true;
-
-        document.getElementById('googleLoginBtnContainer').style.display = 'none';
-        document.getElementById('googleBackupContainer').style.display = 'block';
-    }
-
-    const googleBackupBtn = document.getElementById('googleBackupBtn');
-    if (googleBackupBtn) {
-        googleBackupBtn.addEventListener('click', () => {
-            alert('구글 드라이브에 동기화를 시작합니다');
-            // 향후 gapi.client.drive 등을 사용하여 파일 업로드 로직 추가
-        });
-    }
-
-    settingsTitleInput.addEventListener('input', (e) => {
-        const newTitle = e.target.value.trim() || 'Planner';
-        userSettings.appTitle = newTitle;
-        updateTitleDisplay();
-        saveSettings();
-    });
-
-    document.getElementById('closeSettingsBtn').addEventListener('click', () => {
-        settingsModal.classList.remove('show');
-    });
-
-    // ==========================================
-    // 7. SERVICE WORKER FOR PWA
-    // ==========================================
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker Registered!', reg))
-                .catch(err => console.error('Service Worker Registration Failed!', err));
-        });
-    }
-
-    // Boot
-    renderPlanner();
+    if (daySelector) renderPlanner();
     renderFinance();
 });

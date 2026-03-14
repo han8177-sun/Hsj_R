@@ -3,16 +3,25 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#F8FAFC">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>Student Planner & Finance</title>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
         rel="stylesheet" />
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body class="light-mode">
     <div class="app-container">
+        <!-- Header -->
         <header class="glass-header">
             <div class="top-bar">
                 <div class="logo-area" id="logoArea" onclick="openSettings()">
@@ -27,64 +36,373 @@
             <div class="day-selector" id="daySelector"></div>
         </header>
 
-        <main id="mainContent">
-            <div id="plannerTab" class="tab-content"></div>
-            <div id="financeTab" class="tab-content" style="display:none;"></div>
+        <!-- ======================= PLANNER TAB ======================= -->
+        <main class="timeline-container nav-padded" id="plannerTab">
+            <!-- Free Time Widget -->
+            <div class="summary-widget">
+                <div class="summary-icon">
+                    <span class="material-symbols-rounded">hourglass_empty</span>
+                </div>
+                <div class="summary-text">
+                    <span class="summary-label">오늘의 남은 자습(여유) 시간</span>
+                    <strong class="summary-value" id="freeTimeDisplay">계산 중...</strong>
+                </div>
+            </div>
+
+            <!-- School Context -->
+            <section class="timeline-section" id="schoolSection">
+                <div class="section-header">
+                    <h2><span class="material-symbols-rounded">school</span> 학교 시간표</h2>
+                </div>
+                <div class="period-list" id="schoolList"></div>
+            </section>
+
+            <div class="transit-divider" id="transitDivider">
+                <div class="transit-icon-wrap">
+                    <span class="material-symbols-rounded">directions_walk</span>
+                    <span>하교 (16:40 이후)</span>
+                </div>
+            </div>
+
+            <!-- Academy Context -->
+            <section class="timeline-section" id="academySection">
+                <div class="section-header">
+                    <h2><span class="material-symbols-rounded">menu_book</span> 방과 후 & 학원</h2>
+                </div>
+                <div class="evening-grid" id="eveningContainer">
+                    <div class="time-rulers">
+                        <span>18:00</span><span>19:00</span><span>20:00</span>
+                        <span>21:00</span><span>22:00</span><span>23:00</span><span>24:00</span>
+                    </div>
+                    <div class="evening-blocks" id="eveningBlocks">
+                        <div class="evening-empty-clicker" id="eveningClicker">
+                            <span>여기를 눌러 학원/저녁 일정을 추가하세요</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Daily Missions -->
+            <section class="timeline-section mission-section">
+                <div class="section-header" style="justify-content: space-between;">
+                    <h2><span class="material-symbols-rounded">checklist</span> 데일리 미션</h2>
+                </div>
+                <div class="mission-cards">
+                    <div class="mission-card">
+                        <div class="mission-header">
+                            <h3>할 일 / 숙제</h3>
+                            <button class="icon-btn small-btn" id="addHomeworkBtn"><span
+                                    class="material-symbols-rounded">add</span></button>
+                        </div>
+                        <ul class="mission-list" id="homeworkList"></ul>
+                    </div>
+                    <div class="mission-card" style="margin-top: 16px;">
+                        <div class="mission-header">
+                            <h3>운동 / 루틴</h3>
+                            <button class="icon-btn small-btn" id="addExerciseBtn"><span
+                                    class="material-symbols-rounded">add</span></button>
+                        </div>
+                        <ul class="mission-list" id="exerciseList"></ul>
+                    </div>
+                </div>
+            </section>
         </main>
 
+        <!-- ======================= FINANCE TAB ======================= -->
+        <main class="finance-container nav-padded" id="financeTab" style="display: none;">
+            <!-- Dashboard -->
+            <section class="finance-dashboard">
+                <div class="balance-card">
+                    <span class="fc-label">이번 달 총 잔액</span>
+                    <strong class="fc-value balance" id="totalBalanceDisplay">0원</strong>
+                </div>
+                <div class="flow-cards">
+                    <div class="flow-card income">
+                        <div class="flow-icon"><span class="material-symbols-rounded">arrow_downward</span></div>
+                        <div class="flow-text">
+                            <span class="fc-label">수입 (Income)</span>
+                            <strong class="fc-value txt-blue" id="totalIncomeDisplay">0원</strong>
+                        </div>
+                    </div>
+                    <div class="flow-card expense">
+                        <div class="flow-icon"><span class="material-symbols-rounded">arrow_upward</span></div>
+                        <div class="flow-text">
+                            <span class="fc-label">지출 (Expense)</span>
+                            <strong class="fc-value txt-red" id="totalExpenseDisplay">0원</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Transactions List -->
+            <section class="transactions-section">
+                <div class="section-header" style="justify-content: space-between;">
+                    <h2>이번 달 내역</h2>
+                </div>
+                <div class="transaction-list" id="transactionList"></div>
+            </section>
+        </main>
+
+        <!-- Contextual FAB -->
+        <button class="fab" id="mainFab">
+            <span class="material-symbols-rounded">add</span>
+        </button>
+
+        <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <div class="nav-item active" data-tab="planner">
-                <span class="material-symbols-rounded">calendar_month</span>
-                <span>시간표</span>
-            </div>
-            <div class="nav-item" data-tab="finance">
-                <span class="material-symbols-rounded">account_balance_wallet</span>
-                <span>가계부</span>
+            <div class="nav-wrapper">
+                <div class="nav-item active" data-tab="planner" id="navPlanner">
+                    <span class="material-symbols-rounded">calendar_month</span>
+                    <span>시간표</span>
+                </div>
+                <div class="nav-divider"></div>
+                <div class="nav-item" data-tab="finance" id="navFinance">
+                    <span class="material-symbols-rounded">account_balance_wallet</span>
+                    <span>가계부</span>
+                </div>
             </div>
         </nav>
-    </div>
 
-    <div id="settingsModal" class="modal-overlay"
-        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; backdrop-filter:blur(5px);">
-        <div class="modal-content"
-            style="background:white; width:300px; margin:20% auto; padding:25px; border-radius:25px; position:relative;">
-            <button onclick="closeSettings()"
-                style="position:absolute; right:20px; top:20px; border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
-            <h2 style="margin-top:0;">설정</h2>
-            <div style="margin-bottom:20px;">
-                <label style="font-size:12px; font-weight:bold;">앱 제목 수정 ✏️</label>
-                <input type="text" id="modalTitleInput"
-                    style="width:100%; padding:10px; margin-top:5px; border:1px solid #eee; border-radius:10px; box-sizing:border-box;">
+        <!-- MODALS -->
+
+        <!-- Planner Add Modal -->
+        <div class="modal-overlay" id="addPlannerModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="plannerModalTitle">일정 추가</h3>
+                    <button class="icon-btn" id="closePlannerModalBtn" onclick="closeModals()"><span
+                            class="material-symbols-rounded">close</span></button>
+                </div>
+                <div class="modal-body">
+                    <form id="scheduleForm">
+                        <input type="hidden" id="inputPeriodIdx" value="">
+                        <!-- tracker for context -->
+                        <div class="form-group">
+                            <label>학원명 / 과목명</label>
+                            <input type="text" id="inputSubject" placeholder="예: 수학학원, 국어(미적분)" required>
+                        </div>
+                        <div class="form-group">
+                            <label>시간대 (시작 - 종료)</label>
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <input type="time" id="inputStartTime" required>
+                                <span>~</span>
+                                <input type="time" id="inputEndTime" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>이동 시간 (수업 전, 분 단위)</label>
+                            <input type="number" id="inputTransit" placeholder="예: 30" min="0" step="5">
+                        </div>
+                        <div class="form-group">
+                            <label>장소</label>
+                            <input type="text" id="inputLocation" placeholder="예: 본관 302호">
+                        </div>
+                        <div class="form-group">
+                            <label>테마 색상</label>
+                            <div class="color-picker">
+                                <label class="color-option"><input type="radio" name="subjectColor"
+                                        value="var(--color-kor)" checked>
+                                    <div class="color-swatch kor"></div>
+                                </label>
+                                <label class="color-option"><input type="radio" name="subjectColor"
+                                        value="var(--color-eng)">
+                                    <div class="color-swatch eng"></div>
+                                </label>
+                                <label class="color-option"><input type="radio" name="subjectColor"
+                                        value="var(--color-math)">
+                                    <div class="color-swatch math"></div>
+                                </label>
+                                <label class="color-option"><input type="radio" name="subjectColor"
+                                        value="var(--color-sci)">
+                                    <div class="color-swatch sci"></div>
+                                </label>
+                                <label class="color-option"><input type="radio" name="subjectColor"
+                                        value="var(--color-soc)">
+                                    <div class="color-swatch soc"></div>
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">스케줄 저장</button>
+                    </form>
+                </div>
             </div>
-            <hr style="border:0; border-top:1px solid #f5f5f5; margin:20px 0;">
-            <label style="font-size:12px; font-weight:bold;">데이터 관리 ☁️</label>
-            <button id="authBtn" onclick="handleAuth()"
-                style="width:100%; padding:12px; background:#4a90e2; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-top:10px;">구글
-                계정 연결하기</button>
-            <button id="syncBtn" onclick="syncData()"
-                style="display:none; width:100%; padding:12px; background:#34a853; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">지금
-                드라이브에 저장</button>
         </div>
+
+        <!-- Mission Details Modal -->
+        <div class="modal-overlay" id="addMissionModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="missionModalTitle">데일리 미션 추가</h3>
+                    <button class="icon-btn" id="closeMissionModalBtn" onclick="closeModals()"><span
+                            class="material-symbols-rounded">close</span></button>
+                </div>
+                <div class="modal-body">
+                    <form id="missionForm">
+                        <input type="hidden" id="inputMissionId" value="">
+                        <input type="hidden" id="inputMissionGrp" value="">
+
+                        <div class="form-group">
+                            <label>목표 (할 일)</label>
+                            <input type="text" id="inputMissionText" placeholder="예: 수학 프린트 3장 풀기" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>분류</label>
+                            <div class="category-grid">
+                                <label class="cat-option"><input type="radio" name="missCategory" value="공부" checked>
+                                    <div class="cat-chip"><span class="material-symbols-rounded">menu_book</span>공부
+                                    </div>
+                                </label>
+                                <label class="cat-option"><input type="radio" name="missCategory" value="운동">
+                                    <div class="cat-chip"><span class="material-symbols-rounded">fitness_center</span>운동
+                                    </div>
+                                </label>
+                                <label class="cat-option"><input type="radio" name="missCategory" value="읽기">
+                                    <div class="cat-chip"><span class="material-symbols-rounded">auto_stories</span>독서
+                                    </div>
+                                </label>
+                                <label class="cat-option"><input type="radio" name="missCategory" value="기타">
+                                    <div class="cat-chip"><span class="material-symbols-rounded">more_horiz</span>기타
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>예정/소요 시간 (텍스트)</label>
+                            <input type="text" id="inputMissionTime" placeholder="예: 30분, 1시간 반 등">
+                        </div>
+
+                        <div class="form-group" id="evaluationGroup" style="display: none;">
+                            <label>스스로 평가하기</label>
+                            <div class="star-rating" id="missionStars">
+                                <span class="material-symbols-rounded star-btn" data-val="1">star</span>
+                                <span class="material-symbols-rounded star-btn" data-val="2">star</span>
+                                <span class="material-symbols-rounded star-btn" data-val="3">star</span>
+                                <span class="material-symbols-rounded star-btn" data-val="4">star</span>
+                                <span class="material-symbols-rounded star-btn" data-val="5">star</span>
+                            </div>
+                            <input type="hidden" id="inputMissionRating" value="0">
+                        </div>
+
+                        <button type="submit" class="btn-primary">미션 저장</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Finance Add Modal -->
+        <div class="modal-overlay" id="addFinanceModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="financeModalTitle">내역 추가</h3>
+                    <button class="icon-btn" id="closeFinanceModalBtn" onclick="closeModals()"><span
+                            class="material-symbols-rounded">close</span></button>
+                </div>
+                <div class="modal-body">
+                    <form id="financeForm">
+                        <div class="form-group toggle-group">
+                            <label class="toggle-btn active" id="toggleExpense">
+                                <input type="radio" name="financeType" value="expense" checked style="display:none;">지출
+                            </label>
+                            <label class="toggle-btn" id="toggleIncome">
+                                <input type="radio" name="financeType" value="income" style="display:none;">수입
+                            </label>
+                        </div>
+                        <div class="form-group"><label>날짜</label><input type="date" id="inputFinanceDate" required>
+                        </div>
+                        <input type="hidden" id="inputFinanceId" value="">
+                        <div class="form-group"><label>금액 (원)</label><input type="text" inputmode="numeric"
+                                id="inputFinanceAmount" placeholder="예: 5,000" required></div>
+                        <div class="form-group"><label>항목명 / 내역</label><input type="text" id="inputFinanceTitle"
+                                placeholder="예: 점심 식대, 용돈" required></div>
+
+                        <div class="form-group" id="expenseCategoryGroup">
+                            <label>지출 카테고리</label>
+                            <div class="category-grid">
+                                <label class="cat-option"><input type="radio" name="finCategory" value="식비" checked>
+                                    <div class="cat-chip"><span class="material-symbols-rounded">restaurant</span>식비
+                                    </div>
+                                </label>
+                                <label class="cat-option"><input type="radio" name="finCategory" value="교통">
+                                    <div class="cat-chip"><span class="material-symbols-rounded">directions_bus</span>교통
+                                    </div>
+                                </label>
+                                <label class="cat-option"><input type="radio" name="finCategory" value="교재">
+                                    <div class="cat-chip"><span class="material-symbols-rounded">book</span>교재</div>
+                                </label>
+                                <label class="cat-option"><input type="radio" name="finCategory" value="취미">
+                                    <div class="cat-chip"><span class="material-symbols-rounded">sports_esports</span>취미
+                                    </div>
+                                </label>
+                                <label class="cat-option"><input type="radio" name="finCategory" value="기타">
+                                    <div class="cat-chip"><span class="material-symbols-rounded">more_horiz</span>기타
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group" id="incomeCategoryGroup" style="display: none;">
+                            <label>수입 카테고리</label>
+                            <div class="category-grid">
+                                <label class="cat-option"><input type="radio" name="finCategoryInc" value="용돈" checked>
+                                    <div class="cat-chip"><span class="material-symbols-rounded">payments</span>용돈</div>
+                                </label>
+                                <label class="cat-option"><input type="radio" name="finCategoryInc" value="보너스">
+                                    <div class="cat-chip"><span class="material-symbols-rounded">redeem</span>보너스</div>
+                                </label>
+                                <label class="cat-option"><input type="radio" name="finCategoryInc" value="기타">
+                                    <div class="cat-chip"><span class="material-symbols-rounded">more_horiz</span>기타
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">내역 저장</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal (Redesigned) -->
+        <div id="settingsModal" class="modal-overlay"
+            style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; backdrop-filter:blur(5px);">
+            <div class="modal-content"
+                style="background:white; width:300px; margin:20% auto; padding:25px; border-radius:25px; position:relative;">
+                <button onclick="closeSettings()"
+                    style="position:absolute; right:20px; top:20px; border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
+                <h2 style="margin-top:0;">설정</h2>
+
+                <div style="margin-bottom:20px;">
+                    <label style="font-size:12px; font-weight:bold;">앱 제목 수정 ✏️</label>
+                    <input type="text" id="modalTitleInput"
+                        style="width:100%; padding:10px; margin-top:5px; border:1px solid #eee; border-radius:10px; box-sizing:border-box;">
+                </div>
+
+                <hr style="border:0; border-top:1px solid #f5f5f5; margin:20px 0;">
+
+                <div style="margin-bottom: 5px;">
+                    <label style="font-size:12px; font-weight:bold;">데이터 관리 ☁️</label>
+                </div>
+                <div id="syncStatus" style="font-size:11px; color:#999; margin:5px 0 10px 0;">구글 로그인이 필요합니다.</div>
+
+                <button id="authBtn"
+                    style="width:100%; padding:12px; background:#4a90e2; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-top:10px;">
+                    구글 계정 연결하기
+                </button>
+
+                <button id="syncBtn"
+                    style="display:none; width:100%; padding:12px; background:#34a853; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">
+                    지금 드라이브에 저장
+                </button>
+            </div>
+        </div>
+
     </div>
 
+    <!-- 4. 연결 확인: 구글 공식 라이브러리와 app.js를 순서대로 명시 -->
     <script async defer src="https://apis.google.com/js/api.js"></script>
     <script async defer src="https://accounts.google.com/gsi/client"></script>
     <script src="app.js"></script>
-
-    <script>
-        function openSettings() {
-            document.getElementById('settingsModal').style.display = 'block';
-            document.getElementById('modalTitleInput').value = document.getElementById('mainTitle').innerText;
-        }
-        function closeSettings() {
-            const newTitle = document.getElementById('modalTitleInput').value;
-            if (newTitle) {
-                document.getElementById('mainTitle').innerText = newTitle;
-                localStorage.setItem('planner_title', newTitle);
-            }
-            document.getElementById('settingsModal').style.display = 'none';
-        }
-    </script>
 </body>
 
 </html>

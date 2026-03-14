@@ -11,8 +11,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
-
+<body class="light-mode">
     <div class="app-container">
         <header class="glass-header">
             <div class="top-bar">
@@ -34,11 +33,11 @@
         </main>
 
         <nav class="bottom-nav">
-            <div class="nav-item active" data-tab="planner" id="navPlanner">
+            <div class="nav-item active" data-tab="planner">
                 <span class="material-symbols-rounded">calendar_month</span>
                 <span>시간표</span>
             </div>
-            <div class="nav-item" data-tab="finance" id="navFinance">
+            <div class="nav-item" data-tab="finance">
                 <span class="material-symbols-rounded">account_balance_wallet</span>
                 <span>가계부</span>
             </div>
@@ -51,29 +50,26 @@
             style="background:white; width:300px; margin:20% auto; padding:25px; border-radius:25px; position:relative;">
             <button onclick="closeSettings()"
                 style="position:absolute; right:20px; top:20px; border:none; background:none; font-size:24px; cursor:pointer;">&times;</button>
-            <h2 style="margin-top:0; font-size:20px;">설정</h2>
+            <h2 style="margin-top:0;">설정</h2>
             <div style="margin-bottom:20px;">
-                <label style="font-size:12px; font-weight:bold; color:#666;">앱 제목 수정 ✏️</label>
+                <label style="font-size:12px; font-weight:bold;">앱 제목 수정 ✏️</label>
                 <input type="text" id="modalTitleInput"
                     style="width:100%; padding:10px; margin-top:5px; border:1px solid #eee; border-radius:10px; box-sizing:border-box;">
             </div>
             <hr style="border:0; border-top:1px solid #f5f5f5; margin:20px 0;">
-            <div>
-                <label style="font-size:12px; font-weight:bold; color:#666;">데이터 관리 ☁️</label>
-                <div id="syncStatus" style="font-size:11px; color:#999; margin:5px 0 10px 0;">구글 로그인이 필요합니다.</div>
-                <button id="authBtn" onclick="handleAuth()"
-                    style="width:100%; padding:12px; background:#4a90e2; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-bottom:10px;">구글
-                    계정 연결하기</button>
-                <button id="syncBtn" onclick="syncData()"
-                    style="display:none; width:100%; padding:12px; background:#34a853; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">지금
-                    드라이브에 저장</button>
-            </div>
+            <label style="font-size:12px; font-weight:bold;">데이터 관리 ☁️</label>
+            <button id="authBtn" onclick="handleAuth()"
+                style="width:100%; padding:12px; background:#4a90e2; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer; margin-top:10px;">구글
+                계정 연결하기</button>
+            <button id="syncBtn" onclick="syncData()"
+                style="display:none; width:100%; padding:12px; background:#34a853; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">지금
+                드라이브에 저장</button>
         </div>
     </div>
 
+    <script async defer src="https://apis.google.com/js/api.js"></script>
+    <script async defer src="https://accounts.google.com/gsi/client"></script>
     <script src="app.js"></script>
-    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
-    <script async defer src="https://accounts.google.com/gsi/client" onload="gsiLoaded()"></script>
 
     <script>
         function openSettings() {

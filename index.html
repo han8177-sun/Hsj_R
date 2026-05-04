@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Cyber Planner</title>
+    <!-- Material Symbols -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="theme-cyber">
+    <div id="dynamicBackground" class="dynamic-bg solid"></div>
+    <div id="praiseContainer" class="praise-container"></div>
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <div class="app-container">
+
+        <!-- Header -->
+        <header class="app-header neon-border-bottom">
+            <div class="top-row">
+                <div id="app-title" class="title-area" onclick="openSettings()" style="cursor: pointer;">
+                    <h1 id="mainTitle" class="neon-text-blue">CYBER.PLANNER</h1>
+                </div>
+                <div class="settings-area">
+                    <span id="settings-btn" class="material-symbols-rounded settings-icon" onclick="openSettings()" style="cursor: pointer;">settings</span>
+                </div>
+            </div>
+            
+            <!-- D-Days Container (Horizontal Layout) -->
+            <div class="dday-container" id="ddayContainer" onclick="openSettings()" style="cursor: pointer;">
+                <!-- JS Generated D-Day badges -->
+            </div>
+            
+            <!-- Day Selector -->
+            <div class="day-selector" id="daySelector"></div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main id="mainContent">
+
+            <!-- ======================= PLANNER TAB ======================= -->
+            <div id="plannerTab" class="tab-content active-tab">
+
+                <!-- Free Time Widget -->
+                <div class="cyber-widget free-time-widget" id="freeTimeContainer" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; margin-bottom: 20px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="material-symbols-rounded neon-text-emerald" style="font-size: 16px;">hourglass_bottom</span>
+                            <span class="label" id="freeTimeLabel" style="margin: 0; font-size: 11px; color: var(--text-secondary);">FREE TIME REMAINING</span>
+                        </div>
+                        <strong class="value neon-text-blue" id="freeTimeDisplay" style="font-size: 24px; line-height: 1;">Calculating...</strong>
+                    </div>
+                    <div style="text-align: right; align-self: flex-end; padding-bottom: 2px;">
+                        <span id="sleepDisplay" style="font-size: 14px; font-weight: bold; color: var(--neon-blue); letter-spacing: 0.5px; opacity: 1;">🌙 23:30 - ☀️ 07:00</span>
+                    </div>
+                </div>
+
+                <!-- WEEKDAY VIEW: School Schedule (1~8교시) -->
+                <div id="weekdayView" style="display:block;">
+                    <section class="planner-section">
+                        <div class="section-header">
+                            <h2 class="neon-text-light"><span class="material-symbols-rounded">school</span> SCHOOL / 정규 수업</h2>
+                        </div>
+                        <div class="school-card-grid" id="schoolSchedule">
+                            <!-- JS generated 1~8 periods -->
+                        </div>
+                    </section>
+
+                    <div class="cyber-divider override-divider" style="margin-bottom: 25px;">
+                        <span>16:40 SYSTEM OVERRIDE / 방과 후</span>
+                    </div>
+                </div>
+
+                <!-- WEEKEND VIEW HEADER -->
+                <div id="weekendViewHeader" style="display:none; text-align:center; margin-bottom: 20px;">
+                    <br>
+                    <h2 class="neon-text-red" style="font-size:20px; text-shadow: 0 0 10px rgba(255,0,0,0.7);"><span class="material-symbols-rounded" style="font-size:24px; vertical-align:middle;">celebration</span> 주말 자율 모드 가동!</h2>
+                    <p style="color:var(--text-secondary); font-size:12px; margin-top:5px;">원하는 시간에 자유롭게 일정을 설정하세요.</p>
+                </div>
+
+                <!-- Academy / Evening (Used for both Weekdays and Weekends) -->
+                <section class="planner-section">
+                    <div class="section-header">
+                        <h2 class="neon-text-light" id="academySectionTitle"><span class="material-symbols-rounded">local_fire_department</span> ACADEMY / 학원 및 자습</h2>
+                    </div>
+                    <div class="evening-timeline" id="academyTab">
+                        <!-- JS generated blocks -->
+                    </div>
+                    <button class="cyber-btn-outline" onclick="openAcademyModal(-1)">
+                        <span class="material-symbols-rounded">add</span> NEW PROTOCOL (일정 추가)
+                    </button>
+                </section>
+            </div>
+
+            <!-- ======================= GOAL TAB ======================= -->
+            <div id="goalTab" class="tab-content">
+                <section class="planner-section" style="margin-top: 20px;">
+                    <div class="section-header">
+                        <h2 class="neon-text-light"><span class="material-symbols-rounded">terminal</span> DAILY MISSIONS</h2>
+                        <button class="icon-btn neon-text-blue" onclick="openGoalModal(-1)"><span
+                                class="material-symbols-rounded">add_box</span></button>
+                    </div>
+                    <!-- Categories filter visual -->
+                    <div class="goal-categories-preview" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px; opacity:0.8;">
+                        <span class="neon-text-blue" style="font-size:11px; display:flex; align-items:center; gap:3px;"><span class="material-symbols-rounded" style="font-size:14px">menu_book</span>스터디</span>
+                        <span class="neon-text-green" style="font-size:11px; display:flex; align-items:center; gap:3px;"><span class="material-symbols-rounded" style="font-size:14px">fitness_center</span>운동</span>
+                        <span class="neon-text-emerald" style="font-size:11px; display:flex; align-items:center; gap:3px;"><span class="material-symbols-rounded" style="font-size:14px">auto_stories</span>독서</span>
+                        <span class="neon-text-pink" style="font-size:11px; display:flex; align-items:center; gap:3px;"><span class="material-symbols-rounded" style="font-size:14px">sports_esports</span>게임/휴식</span>
+                        <span class="neon-text-yellow" style="font-size:11px; display:flex; align-items:center; gap:3px;"><span class="material-symbols-rounded" style="font-size:14px">brush</span>취미/예술</span>
+                        <span class="neon-text-light" style="font-size:11px; display:flex; align-items:center; gap:3px;"><span class="material-symbols-rounded" style="font-size:14px">pending_actions</span>기타 일정</span>
+                    </div>
+                    
+                    <ul class="cyber-goal-list" id="goalList">
+                        <!-- JS generated goals based on selected day and recurring rules -->
+                    </ul>
+                </section>
+            </div>
+
+            <!-- ======================= FINANCE TAB ======================= -->
+            <div id="financeTab" class="tab-content">
+                <section class="finance-dashboard" style="margin-top: 20px;">
+                    <div class="balance-card neon-box-blue">
+                        <span>CREDITS AVAILABLE</span>
+                        <h2 id="totalBalance" class="neon-text-light">0 ₩</h2>
+                    </div>
+                    <div class="finance-row">
+                        <div class="finance-box neon-box-green">
+                            <span>INCOME</span> <strong id="totalIncome">0 ₩</strong>
+                        </div>
+                        <div class="finance-box neon-box-red">
+                            <span>EXPENSE</span> <strong id="totalExpense">0 ₩</strong>
+                        </div>
+                    </div>
+                    
+                    <!-- New Horizontal Bar Chart Container -->
+                    <div style="margin-top: 10px; margin-bottom: 0px;">
+                        <span style="font-size:13px; font-weight:600; color:var(--text-secondary); letter-spacing:1px; padding-left:5px;">지출 패턴</span>
+                        <div style="position:relative; height: 60px; margin-top:2px;">
+                            <canvas id="expenseChart"></canvas>
+                        </div>
+                    </div>
+                </section>
+                <section class="planner-section">
+                    <div class="section-header">
+                        <h2 class="neon-text-light">TRANSACTION LOG</h2>
+                        <button class="icon-btn neon-text-blue" onclick="openFinanceModal()"><span
+                                class="material-symbols-rounded">add_box</span></button>
+                    </div>
+                    <div class="transaction-list" id="transactionList" style="margin-bottom:20px;">
+                    </div>
+                    <button class="cyber-btn-primary" style="margin-top: 10px; width: 100%; font-size: 14px; padding: 15px; background: rgba(0, 243, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); animation: neonPulseBlue 2s infinite;" onclick="openReportModal()">
+                        <span class="material-symbols-rounded" style="vertical-align: middle; margin-right: 5px;">receipt_long</span> 이번 달 경제 성적표 확인 및 이월하기
+                    </button>
+                </section>
+            </div>
+
+        </main>
+
+        <nav class="cyber-bottom-nav">
+            <div class="nav-item active" data-target="plannerTab">
+                <span class="material-symbols-rounded">grid_view</span>
+                <span>TIMELINE</span>
+            </div>
+            <div class="nav-item" data-target="goalTab">
+                <span class="material-symbols-rounded">fact_check</span>
+                <span>MISSIONS</span>
+            </div>
+            <div class="nav-item" data-target="financeTab">
+                <span class="material-symbols-rounded">account_balance_wallet</span>
+                <span>CREDITS</span>
+            </div>
+        </nav>
+    </div>
+
+    <!-- ======================= MODALS ======================= -->
+
+    <!-- Settings & Sync Modal -->
+    <div class="modal-overlay" id="settings-modal">
+        <div class="cyber-modal-content">
+            <button class="close-btn" onclick="closeModals(); document.getElementById('settings-modal').style.display=''; "><span class="material-symbols-rounded">close</span></button>
+            <h2 class="neon-text-blue">SYSTEM PREFS</h2>
+            <div class="form-group">
+                <label>플래너 이름 (ID)</label>
+                <input type="text" id="settingTitle" placeholder="CYBER.PLANNER" class="cyber-input">
+            </div>
+            <div class="form-group">
+                <label>배경 테마 선택</label>
+                <select id="settingBackground" class="cyber-input">
+                    <option value="solid">다크 모드 (기본)</option>
+                    <option value="gradient">네온 그라데이션</option>
+                    <option value="space">사이버 우주 (Space)</option>
+                </select>
+            </div>
+            
+            <div class="cyber-divider"><span>D-DAY CONFIG (최대 3개)</span></div>
+            <!-- D-Day 1 -->
+            <div class="form-group" style="margin-bottom:8px;">
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="settingDdayName1" placeholder="디데이 1" class="cyber-input" style="flex:1;">
+                    <input type="date" id="settingDdayDate1" class="cyber-input" style="flex:1;">
+                </div>
+            </div>
+            <!-- D-Day 2 -->
+            <div class="form-group" style="margin-bottom:8px;">
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="settingDdayName2" placeholder="디데이 2" class="cyber-input" style="flex:1;">
+                    <input type="date" id="settingDdayDate2" class="cyber-input" style="flex:1;">
+                </div>
+            </div>
+            <!-- D-Day 3 -->
+            <div class="form-group">
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="settingDdayName3" placeholder="디데이 3" class="cyber-input" style="flex:1;">
+                    <input type="date" id="settingDdayDate3" class="cyber-input" style="flex:1;">
+                </div>
+            </div>
+
+            <!-- Sleep Time based calculation base -->
+            <div class="cyber-divider"><span>SLEEP CONFIG</span></div>
+            <div class="form-group">
+                <label>수면 시간 설정 (취침/기상)</label>
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <span style="font-size:11px; color:var(--text-muted);">취침 시간 (예: 23:30)</span>
+                        <input type="time" id="bedTimeInput" class="cyber-input" value="23:30">
+                    </div>
+                    <div style="flex:1;">
+                        <span style="font-size:11px; color:var(--text-muted);">기상 시간 (예: 07:00)</span>
+                        <input type="time" id="wakeTimeInput" class="cyber-input" value="07:00">
+                    </div>
+                </div>
+            </div>
+
+            <div class="cyber-divider"><span>CLOUD SYNC</span></div>
+            
+            <button class="cyber-btn-primary" onclick="saveSettings()" style="margin-bottom: 20px;">저장하기</button>
+            
+            <div id="syncStatus" class="sync-status">시스템 오프라인</div>
+            <button id="authBtn" class="cyber-btn-google" onclick="handleAuth()"><span class="material-symbols-rounded">login</span> GOOGLE 연결</button>
+            <button id="syncBtn" class="cyber-btn-sync" onclick="syncToDrive()" style="display: none;"><span class="material-symbols-rounded">cloud_upload</span> 드라이브 저장하기</button>
+            <button id="loadBtn" class="cyber-btn-outline" onclick="loadFromDrive()" style="display: none; margin-top:10px;"><span class="material-symbols-rounded">cloud_download</span> 드라이브 다운로드</button>
+        </div>
+    </div>
+
+    <!-- School Block Modal -->
+    <div class="modal-overlay" id="schoolModal">
+        <div class="cyber-modal-content">
+            <button class="close-btn" onclick="closeModals()"><span class="material-symbols-rounded">close</span></button>
+            <h2 class="neon-text-blue" id="schoolModalTitle">수업 정보 수정</h2>
+            <input type="hidden" id="schoolPeriod" value="-1">
+            <div class="form-group">
+                <label>교과명</label>
+                <input type="text" id="schoolSubject" placeholder="수학, 체육..." class="cyber-input">
+            </div>
+            <div class="form-group">
+                <label>시간대 선택</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="schoolStart" class="cyber-input time-select">
+                        <!-- JS generated -->
+                    </select>
+                    <span style="color:var(--text-secondary)">~</span>
+                    <select id="schoolEnd" class="cyber-input time-select">
+                        <!-- JS generated -->
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>장소 (교실)</label>
+                <input type="text" id="schoolLocation" placeholder="2학년 3반" class="cyber-input">
+            </div>
+            <div class="form-group">
+                <label>과제/숙제 입력 (선택사항)</label>
+                <input type="text" id="schoolHomework" placeholder="수학 익힘책 10~15p" class="cyber-input">
+            </div>
+            <button class="cyber-btn-primary" onclick="saveSchoolBlock()">저장하기</button>
+        </div>
+    </div>
+
+    <!-- Academy Block Modal (Integrated) -->
+    <div class="modal-overlay" id="academyModal">
+        <div class="cyber-modal-content">
+            <button class="close-btn" onclick="closeModals()"><span class="material-symbols-rounded">close</span></button>
+            <h2 class="neon-text-emerald" id="academyModalTitle">계획 추가</h2>
+            <input type="hidden" id="academyIndex" value="-1">
+
+            <div class="form-group">
+                <label id="acadSubjectLabel">학원명 / 스터디 내용</label>
+                <input type="text" id="academySubject" placeholder="영어 학원, 수학 복습 등" class="cyber-input" required>
+            </div>
+
+            <div class="form-group">
+                <label>시간대 선택 (메인 스케줄)</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="academyStart" class="cyber-input time-select"></select>
+                    <span style="color:var(--text-secondary)">~</span>
+                    <select id="academyEnd" class="cyber-input time-select"></select>
+                </div>
+            </div>
+            
+            <!-- New Integrated Extra Time Input -->
+            <div class="form-group">
+                <label>🚗 부가 소요시간 및 목적</label>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <select id="academyExtraPurpose" class="cyber-input" style="flex:1;">
+                        <option value="🚶 이동">🚶 이동</option>
+                        <option value="🍔 식사">🍔 식사</option>
+                        <option value="🏪 경유">🏪 경유 (편의점/약국 등)</option>
+                        <option value="🎸 기타">🎸 기타</option>
+                    </select>
+                    <select id="academyExtraTime" class="cyber-input" style="flex:1;">
+                        <option value="0">추가 없음 (0분)</option>
+                        <option value="10">10분 추가 소요</option>
+                        <option value="15">15분 추가 소요</option>
+                        <option value="20">20분 추가 소요</option>
+                        <option value="30">30분 추가 소요</option>
+                        <option value="45">45분 추가 소요</option>
+                        <option value="60">1시간 추가 소요</option>
+                        <option value="90">1시간 30분 추가 소요</option>
+                        <option value="120">2시간 추가 소요</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-group" id="acadLocationGroup">
+                <label>장소</label>
+                <input type="text" id="academyLocation" placeholder="에이블 학원 열람실" class="cyber-input">
+            </div>
+
+            <div class="form-group">
+                <label>과제/숙제 입력 (선택사항)</label>
+                <input type="text" id="academyHomework" placeholder="단어 100개 암기" class="cyber-input">
+            </div>
+
+            <div class="form-group" id="colorGroup">
+                <label>블록 테마 레이저 색상</label>
+                <div class="color-picker" id="academyColorPicker">
+                    <div class="color-swatch bg-pastel-pink active" data-color="pastel-pink"></div>
+                    <div class="color-swatch bg-pastel-orange" data-color="pastel-orange"></div>
+                    <div class="color-swatch bg-pastel-yellow" data-color="pastel-yellow"></div>
+                    <div class="color-swatch bg-pastel-green" data-color="pastel-green"></div>
+                    <div class="color-swatch bg-pastel-blue" data-color="pastel-blue"></div>
+                    <div class="color-swatch bg-pastel-purple" data-color="pastel-purple"></div>
+                    <div class="color-swatch bg-pastel-red" data-color="pastel-red"></div>
+                </div>
+            </div>
+            <input type="hidden" id="academyColor" value="pastel-pink">
+
+            <button class="cyber-btn-primary" onclick="saveAcademyBlock()">저장하기</button>
+        </div>
+    </div>
+
+    <!-- Goal Modal with Categories and Recurring Features -->
+    <div class="modal-overlay" id="goalModal">
+        <div class="cyber-modal-content">
+            <button class="close-btn" onclick="closeModals()"><span class="material-symbols-rounded">close</span></button>
+            <h2 class="neon-text-green">미션 생성</h2>
+            <input type="hidden" id="goalIndex" value="-1">
+            
+            <div class="form-group">
+                <label>미션 유형 (카테고리)</label>
+                <div class="category-selector">
+                    <label class="cat-radio-btn theme-blue">
+                        <input type="radio" name="goalCategory" value="study" checked>
+                        <span class="material-symbols-rounded">menu_book</span> 스터디
+                    </label>
+                    <label class="cat-radio-btn theme-green">
+                        <input type="radio" name="goalCategory" value="exercise">
+                        <span class="material-symbols-rounded">fitness_center</span> 운동
+                    </label>
+                    <label class="cat-radio-btn theme-emerald">
+                        <input type="radio" name="goalCategory" value="read">
+                        <span class="material-symbols-rounded">auto_stories</span> 독서
+                    </label>
+                    <label class="cat-radio-btn theme-pink">
+                        <input type="radio" name="goalCategory" value="game">
+                        <span class="material-symbols-rounded">sports_esports</span> 하프타임
+                    </label>
+                    <label class="cat-radio-btn theme-yellow">
+                        <input type="radio" name="goalCategory" value="hobby">
+                        <span class="material-symbols-rounded">brush</span> 취미/예술
+                    </label>
+                    <label class="cat-radio-btn bg-surface">
+                        <input type="radio" name="goalCategory" value="other">
+                        <span class="material-symbols-rounded">pending_actions</span> 기타 일정
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>미션 상세 내용 (할 일)</label>
+                <input type="text" id="goalText" placeholder="예: 수학 문제집 풀기, 스쿼트 50개" class="cyber-input" required>
+            </div>
+
+            <!-- New Quantitative Target Input -->
+            <div class="form-group">
+                <label>목표치 설정 (선택사항)</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="number" id="goalTargetVal" placeholder="수치 (예: 5)" class="cyber-input" style="flex:1;">
+                    <input type="text" id="goalTargetUnit" placeholder="단위 (장, 개, 바퀴 등)" class="cyber-input" style="flex:1;">
+                </div>
+            </div>
+
+            <!-- Type B Mission Reward Input -->
+            <div class="form-group">
+                <label>미션 보상금 (집안일/노동 등 유형 B)</label>
+                <input type="number" id="goalReward" placeholder="보상 없음(본분)은 비워두세요. 예: 1000" class="cyber-input">
+            </div>
+
+            <!-- Mission Color Selection -->
+            <div class="form-group">
+                <label>테마 색상</label>
+                <div class="color-picker" id="goalColorPicker">
+                    <div class="color-swatch bg-pastel-pink active" data-color="pastel-pink"></div>
+                    <div class="color-swatch bg-pastel-orange" data-color="pastel-orange"></div>
+                    <div class="color-swatch bg-pastel-yellow" data-color="pastel-yellow"></div>
+                    <div class="color-swatch bg-pastel-green" data-color="pastel-green"></div>
+                    <div class="color-swatch bg-pastel-blue" data-color="pastel-blue"></div>
+                    <div class="color-swatch bg-pastel-purple" data-color="pastel-purple"></div>
+                    <div class="color-swatch bg-pastel-red" data-color="pastel-red"></div>
+                </div>
+            </div>
+            <input type="hidden" id="goalColor" value="pastel-pink">
+
+            <!-- Recurring Options -->
+            <div class="form-group">
+                <label>반복 규칙 (현재 다크라인 기준 시작)</label>
+                <select id="goalRepeat" class="cyber-input">
+                    <option value="none">단일 미션 (반복 없음)</option>
+                    <option value="daily">매일 반복</option>
+                    <option value="weekly">매주 반복 (같은 요일)</option>
+                    <option value="monthly">매월 반복 (같은 날짜)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="margin-bottom:0;">목표 종료일 (End Date) - 생략 시 무제한</label>
+                    <div class="quick-date-badges">
+                        <span class="quick-date-tag" onclick="setQuickDate(7)">+1주일</span>
+                        <span class="quick-date-tag" onclick="setQuickDate(30)">+1개월</span>
+                        <span class="quick-date-tag" onclick="setQuickDate(100)">+100일</span>
+                        <span class="quick-date-tag" onclick="setQuickDate(0)">초기화</span>
+                    </div>
+                </div>
+                <div style="position: relative;">
+                    <input type="text" id="goalEndDateText" class="cyber-input" placeholder="YYYYMMDD (숫자 8자리)" oninput="formatAutoDate(this)" maxlength="10">
+                    <input type="date" id="goalEndDate" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); opacity:0; width:24px; height:24px; cursor:pointer;" onchange="document.getElementById('goalEndDateText').value = this.value">
+                    <span class="material-symbols-rounded" style="position:absolute; right:12px; top:50%; transform:translateY(-50%); pointer-events:none; color:var(--text-muted);">calendar_month</span>
+                </div>
+            </div>
+
+            <button class="cyber-btn-primary" onclick="saveGoal()">저장하기</button>
+        </div>
+    </div>
+
+    <!-- Finance Modal -->
+    <div class="modal-overlay" id="financeModal">
+        <div class="cyber-modal-content finance-modal">
+            <button class="close-btn" onclick="closeModals()"><span class="material-symbols-rounded">close</span></button>
+            <h2 class="neon-text-yellow" id="financeModalTitle">새 거래 추가</h2>
+
+            <div class="form-group">
+                <div class="radio-group" style="margin-bottom: 10px;">
+                    <label class="finance-radio-label" style="color:var(--neon-red)"><input type="radio" name="financeType" value="expense" checked onchange="updateFinanceCategories()"> 지출 (EXP)</label>
+                    <label class="finance-radio-label" style="color:var(--neon-green)"><input type="radio" name="financeType" value="income" onchange="updateFinanceCategories()"> 수입 (INC)</label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label style="margin-bottom:0;">거래 일자</label>
+                    <div class="quick-date-badges">
+                        <span class="quick-date-tag" onclick="setFinanceDate(0)">오늘</span>
+                        <span class="quick-date-tag" onclick="setFinanceDate(-1)">어제</span>
+                    </div>
+                </div>
+                <input type="date" id="financeDate" class="cyber-input" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="finance-label">분류 (카테고리)</label>
+                <select id="financeCategory" class="cyber-input"></select>
+            </div>
+
+            <div class="form-group">
+                <label class="finance-label">금액 (₩)</label>
+                <input type="number" id="financeAmount" placeholder="5000" class="cyber-input finance-input" required>
+            </div>
+            <div class="form-group">
+                <label class="finance-label">내역</label>
+                <input type="text" id="financeTitle" placeholder="항목 입력" class="cyber-input finance-input" required>
+            </div>
+            <button class="cyber-btn-primary" id="financeSaveBtn" onclick="saveFinance()">저장하기</button>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div class="modal-overlay" id="reportModal">
+        <div class="cyber-modal-content finance-modal" style="text-align: center;">
+            <button class="close-btn" onclick="closeModals()"><span class="material-symbols-rounded">close</span></button>
+            <h2 class="neon-text-blue" style="margin-bottom: 20px;">한 달 요약 리포트</h2>
+            
+            <div style="background: var(--bg-surface-elevated); padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid var(--divider);">
+                <div style="margin-bottom: 15px;">이번 달 총 수입<br><strong style="color: var(--neon-green); font-size: 20px;" id="reportInc">0 ₩</strong></div>
+                <div style="margin-bottom: 15px;">이번 달 총 지출<br><strong style="color: var(--neon-red); font-size: 20px;" id="reportExp">0 ₩</strong></div>
+                <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px dashed var(--divider);">최종 잔액<br><strong style="color: var(--neon-blue); font-size: 24px;" id="reportBal">0 ₩</strong></div>
+                
+                <div style="color: var(--text-primary); font-size: 14px; font-weight: 500;" id="reportTopCat">가장 많이 쓴 카테고리: 없음</div>
+                <div style="margin-top: 15px; font-size: 16px; font-weight: bold;" id="reportStatus">흑자/적자 상태</div>
+            </div>
+            
+            <button class="cyber-btn-primary" style="background: var(--neon-purple); border: none; color: #fff; width: 100%;" onclick="carryOverFinance()">이월 후 새달 시작</button>
+        </div>
+    </div>
+
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    <script src="./js/chart.min.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

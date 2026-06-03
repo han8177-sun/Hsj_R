@@ -1,11 +1,11 @@
 {
-  "name": "Student Planner & Finance",
-  "short_name": "Planner",
-  "description": "A study planner and finance tracker tailored for students.",
+  "name": "CYBER.PLANNER - 스마트 학생 플래너",
+  "short_name": "CYBER.PLANNER",
+  "description": "사이버펑크 스타일의 스마트 학생 플래너. 시간표, 미션 관리, 용돈 가계부.",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#F8FAFC",
-  "theme_color": "#3B82F6",
+  "background_color": "#121212",
+  "theme_color": "#00f3ff",
   "orientation": "portrait",
   "icons": [
     {

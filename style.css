@@ -35,10 +35,6 @@
     --pastel-purple: #d5aaff;
     --pastel-red: #ff8a8a; 
 
-    /* Text */
-    --text-primary: #e0f2fe;
-    --text-secondary: #7dd3fc;
-    --text-muted: #475569;
     
     /* System */
     --divider: rgba(0, 243, 255, 0.2);
@@ -674,11 +670,16 @@ main { flex: 1; padding: 20px; }
 
 /* Glassmorphism Global Overrides */
 .school-card, .academy-block, .cyber-modal-content, .cyber-widget, .balance-card, .finance-box, .tx-item, .goal-item, .praise-popup {
-    background-color: var(--card-bg-fixed) !important;
-    color: var(--text-main-fixed) !important;
-    border: var(--card-border) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    background-color: var(--card-bg-fixed);
+    color: var(--text-main-fixed);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+/* Preserve pastel theme borders */
+.academy-block[class*="theme-pastel-"],
+.goal-item[class*="theme-pastel-"] {
+    border-left-width: 4px !important;
+    border-left-style: solid !important;
 }
 
 @keyframes neonPulseBlue {

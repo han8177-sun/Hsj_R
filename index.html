@@ -5,7 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Cyber Planner</title>
+    <title>Cyber Planner - 스마트 학생 플래너</title>
+    <meta name="description" content="사이버펌크 스타일의 스마트 학생 플래너. 시간표, 미션 관리, 용돈 가계부를 하나의 앱에서.">
+    <link rel="manifest" href="manifest.json">
     <!-- Material Symbols -->
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
@@ -152,8 +154,11 @@
                 <section class="planner-section">
                     <div class="section-header">
                         <h2 class="neon-text-light">TRANSACTION LOG</h2>
-                        <button class="icon-btn neon-text-blue" onclick="openFinanceModal()"><span
-                                class="material-symbols-rounded">add_box</span></button>
+                        <div style="display:flex; gap:8px;">
+                            <button class="icon-btn neon-text-yellow" onclick="openSmsParseModal()" title="문자 붙여넣기"><span class="material-symbols-rounded">sms</span></button>
+                            <button class="icon-btn neon-text-blue" onclick="openFinanceModal()"><span
+                                    class="material-symbols-rounded">add_box</span></button>
+                        </div>
                     </div>
                     <div class="transaction-list" id="transactionList" style="margin-bottom:20px;">
                     </div>
@@ -186,7 +191,7 @@
     <!-- Settings & Sync Modal -->
     <div class="modal-overlay" id="settings-modal">
         <div class="cyber-modal-content">
-            <button class="close-btn" onclick="closeModals(); document.getElementById('settings-modal').style.display=''; "><span class="material-symbols-rounded">close</span></button>
+            <button class="close-btn" onclick="closeModals()"><span class="material-symbols-rounded">close</span></button>
             <h2 class="neon-text-blue">SYSTEM PREFS</h2>
             <div class="form-group">
                 <label>플래너 이름 (ID)</label>
@@ -338,6 +343,17 @@
             <div class="form-group">
                 <label>과제/숙제 입력 (선택사항)</label>
                 <input type="text" id="academyHomework" placeholder="단어 100개 암기" class="cyber-input">
+            </div>
+
+            <!-- Notification Setting -->
+            <div class="form-group">
+                <label>🔔 알림 설정</label>
+                <select id="academyNotify" class="cyber-input">
+                    <option value="0">알림 없음</option>
+                    <option value="10">10분 전 알림</option>
+                    <option value="30" selected>30분 전 알림</option>
+                    <option value="60">1시간 전 알림</option>
+                </select>
             </div>
 
             <div class="form-group" id="colorGroup">
@@ -522,10 +538,67 @@
         </div>
     </div>
 
+    <!-- SMS Parse Modal -->
+    <div class="modal-overlay" id="smsModal">
+        <div class="cyber-modal-content finance-modal">
+            <button class="close-btn" onclick="closeModals()"><span class="material-symbols-rounded">close</span></button>
+            <h2 class="neon-text-yellow">📱 문자 붙여넣기</h2>
+            <p style="font-size:12px; color:var(--text-secondary); margin-bottom:15px;">카드 결제 문자를 아래에 붙여넣으세요.<br>금액과 가맹점이 자동으로 추출됩니다.</p>
+            
+            <div class="form-group">
+                <label>카드 결제 문자 내용</label>
+                <textarea id="smsTextInput" class="cyber-input" rows="5" placeholder="[신한카드] 12,000원 승인&#10;스타벅스&#10;06/03 15:44" style="resize:vertical; font-size:14px; line-height:1.6;"></textarea>
+            </div>
+            
+            <button class="cyber-btn-outline" style="margin-bottom:15px; border-color:var(--neon-yellow); color:var(--neon-yellow); background:rgba(255,234,0,0.05);" onclick="parseSmsText()">
+                <span class="material-symbols-rounded">search</span> 자동 추출하기
+            </button>
+            
+            <!-- Parse Preview -->
+            <div id="smsPreview" style="display:none;">
+                <div style="background:rgba(255,234,0,0.08); border:1px solid rgba(255,234,0,0.3); border-radius:4px; padding:15px; margin-bottom:15px;">
+                    <div style="font-size:11px; color:var(--neon-yellow); font-family:'Orbitron'; letter-spacing:1px; margin-bottom:10px;">PARSED RESULT</div>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:var(--text-secondary); font-size:13px;">💰 금액</span>
+                            <strong id="smsPreviewAmount" style="color:var(--neon-red); font-size:20px; font-family:'Orbitron';">0 ₩</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:var(--text-secondary); font-size:13px;">🏪 가맹점</span>
+                            <strong id="smsPreviewTitle" style="color:var(--text-primary); font-size:16px;">-</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:var(--text-secondary); font-size:13px;">📅 날짜</span>
+                            <strong id="smsPreviewDate" style="color:var(--text-primary); font-size:14px; font-family:'Orbitron';">-</strong>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>분류 (카테고리)</label>
+                    <select id="smsCategory" class="cyber-input">
+                        <option value="도서/학습">도서/학습</option>
+                        <option value="게임/디지털">게임/디지털</option>
+                        <option value="간식/식비" selected>간식/식비</option>
+                        <option value="취미/예술">취미/예술</option>
+                        <option value="기타">기타</option>
+                    </select>
+                </div>
+                
+                <button class="cyber-btn-primary" onclick="confirmSmsParse()">가계부에 저장하기</button>
+            </div>
+        </div>
+    </div>
+
     <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
     <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
     <script src="./js/chart.min.js"></script>
     <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration failed:', err));
+        }
+    </script>
 </body>
 
 </html>

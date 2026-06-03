@@ -1,4 +1,5 @@
 // --- Global Config & Keys ---
+
 const CLIENT_ID = '1059241393010-dhcs8fm43uqppd65m113eqj4jk8qk6dt.apps.googleusercontent.com';
 const API_KEY = 'AIzaSyBSmTQrvXqgFlReBfwGolfgSWlNLHU5_-s';
 const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
@@ -94,6 +95,15 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme();
     initUI();
     renderAll();
+
+    // Modal backdrop click to close
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeModals();
+            }
+        });
+    });
 });
 
 function generateTimeOptions() {
@@ -647,9 +657,12 @@ function renderAcademyBlocks() {
         const extPurpose = block.extraPurpose || "🚶 이동";
         let extraHtml = extTime > 0 ? `<div class="extra-time-badge">${extPurpose} ${extTime}분 소요</div>` : '';
         
+        const notifyMin = block.notify || 0;
+        let notifyHtml = notifyMin > 0 ? `<div class="extra-time-badge" style="border-color:rgba(255,234,0,0.3); color:var(--neon-yellow);">🔔 ${notifyMin}분 전 알림</div>` : '';
+        
         let hwHtml = block.homework ? `<div class="card-hw ${block.hwDone ? 'done' : ''}" onclick="event.stopPropagation()"><input type="checkbox" ${block.hwDone ? 'checked' : ''} onchange="toggleAcademyHw(${index}, this)"><span class="hw-text">${block.homework}</span></div>` : "";
         
-        let row2Html = (locHTML || extraHtml) ? `<div style="display:flex; align-items:center; gap:10px; margin-top:6px; padding-right:55px; min-width:0;">${locHTML}${extraHtml}</div>` : '';
+        let row2Html = (locHTML || extraHtml || notifyHtml) ? `<div style="display:flex; align-items:center; gap:10px; margin-top:6px; padding-right:55px; min-width:0; flex-wrap:wrap;">${locHTML}${extraHtml}${notifyHtml}</div>` : '';
         
         html += `
             <div class="academy-block ${colorClass}">
@@ -688,6 +701,7 @@ function openAcademyModal(index) {
         document.getElementById('academyHomework').value = block.homework || '';
         document.getElementById('academyExtraTime').value = block.extraTime || '0';
         document.getElementById('academyExtraPurpose').value = block.extraPurpose || '🚶 이동';
+        document.getElementById('academyNotify').value = block.notify || '30';
         
         document.querySelectorAll('#academyColorPicker .color-swatch').forEach(s => s.classList.remove('active'));
         if(block.color) {
@@ -706,6 +720,7 @@ function openAcademyModal(index) {
         document.getElementById('academyHomework').value = '';
         document.getElementById('academyExtraTime').value = '0'; // reset extra time
         document.getElementById('academyExtraPurpose').value = '🚶 이동'; // reset purpose
+        document.getElementById('academyNotify').value = '30'; // default 30min
         
         // Default pastel block color reset
         document.querySelectorAll('#academyColorPicker .color-swatch').forEach(s => s.classList.remove('active'));
@@ -735,6 +750,7 @@ function saveAcademyBlock() {
     const extraTime = parseInt(document.getElementById('academyExtraTime').value) || 0;
     const extraPurpose = document.getElementById('academyExtraPurpose').value || '🚶 이동';
     const homework = document.getElementById('academyHomework').value;
+    const notify = parseInt(document.getElementById('academyNotify').value) || 0;
     
     if(!subject || !start || !end) return alert('필수 항목을 모두 입력해주세요.');
     
@@ -743,12 +759,15 @@ function saveAcademyBlock() {
     if (index > -1) {
         const existing = appData.academy[currentDay][index];
         const hwDone = existing && existing.hwDone ? existing.hwDone : false;
-        appData.academy[currentDay][index] = { subject, start, end, location, color, extraTime, extraPurpose, homework, hwDone };
+        appData.academy[currentDay][index] = { subject, start, end, location, color, extraTime, extraPurpose, homework, hwDone, notify };
     } else {
-        appData.academy[currentDay].push({ subject, start, end, location, color, extraTime, extraPurpose, homework, hwDone: false });
+        appData.academy[currentDay].push({ subject, start, end, location, color, extraTime, extraPurpose, homework, hwDone: false, notify });
     }
     
     saveLocalData(); renderAcademyBlocks(); closeModals();
+    
+    // Re-schedule notifications
+    scheduleNotifications();
 }
 
 function toggleAcademyHw(index, checkbox) {
@@ -1157,9 +1176,9 @@ function saveFinance() {
     
     if(!amount || !titleRaw || !dateVal) return;
     
-    // XSS Sanitization
-    const title = sanitizeHTML(titleRaw);
-    const category = sanitizeHTML(catVal);
+    // Store raw values (sanitize only at render time to prevent double-encoding)
+    const title = titleRaw;
+    const category = catVal;
     
     if (editingTransactionId !== null) {
         const index = appData.finance.findIndex(f => String(f.id) === String(editingTransactionId));
@@ -1496,7 +1515,6 @@ function openSettings() {
 
     if (modal) {
         modal.classList.add('show');
-        modal.style.display = 'flex';
     } else {
         console.error("HTML에서 id='settings-modal' 요소를 찾을 수 없습니다.");
     }
@@ -1524,9 +1542,6 @@ function saveSettings() {
     applyTheme();
     renderAll();
     closeModals();
-    
-    const modal = document.getElementById('settings-modal');
-    if(modal) modal.style.display = '';
 
     // 강제 리렌더링 (저장 버튼 로직)
     const titleEl = document.getElementById('mainTitle');
@@ -1538,5 +1553,206 @@ function saveSettings() {
 }
 
 function closeModals() {
-    document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('show'));
+    document.querySelectorAll('.modal-overlay').forEach(m => {
+        m.classList.remove('show');
+        m.style.display = '';
+    });
+}
+
+// --- Notification / Alert System ---
+let notificationTimers = []; // Active setTimeout IDs
+
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+function scheduleNotifications() {
+    // Clear any existing timers
+    notificationTimers.forEach(id => clearTimeout(id));
+    notificationTimers = [];
+    
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    
+    const now = new Date();
+    const todayDay = now.getDay() === 0 ? 7 : now.getDay();
+    const blocks = appData.academy[todayDay] || [];
+    
+    blocks.forEach(block => {
+        if (!block.start || !block.notify || block.notify === 0) return;
+        
+        const notifyMins = parseInt(block.notify) || 0;
+        if (notifyMins <= 0) return;
+        
+        const [sh, sm] = block.start.split(':').map(Number);
+        const alertTime = new Date();
+        alertTime.setHours(sh, sm, 0, 0);
+        alertTime.setMinutes(alertTime.getMinutes() - notifyMins);
+        
+        const msUntilAlert = alertTime.getTime() - now.getTime();
+        
+        if (msUntilAlert > 0 && msUntilAlert < 24 * 60 * 60 * 1000) {
+            const timerId = setTimeout(() => {
+                new Notification('🔔 CYBER.PLANNER', {
+                    body: `${block.subject} 시작 ${notifyMins}분 전입니다! (${block.start})`,
+                    icon: './icon.png',
+                    tag: `academy-${block.subject}-${block.start}`
+                });
+                
+                // Also show in-app toast
+                showToastAlert(`⏰ ${block.subject} 시작 ${notifyMins}분 전! (${block.start})`);
+            }, msUntilAlert);
+            
+            notificationTimers.push(timerId);
+        }
+    });
+}
+
+// Call on init (after DOMContentLoaded renderAll)
+(function initNotifications() {
+    requestNotificationPermission();
+    // Schedule after a short delay to ensure data is loaded
+    setTimeout(scheduleNotifications, 2000);
+})();
+
+
+// --- SMS Card Text Parsing ---
+let parsedSmsData = { amount: 0, title: '', date: '' };
+
+function openSmsParseModal() {
+    closeModals();
+    document.getElementById('smsTextInput').value = '';
+    document.getElementById('smsPreview').style.display = 'none';
+    parsedSmsData = { amount: 0, title: '', date: '' };
+    document.getElementById('smsModal').classList.add('show');
+}
+
+function parseSmsText() {
+    const raw = document.getElementById('smsTextInput').value.trim();
+    if (!raw) return alert('문자 내용을 붙여넣어 주세요.');
+    
+    let amount = 0;
+    let title = '';
+    let dateStr = getYYYYMMDD(new Date()); // default: today
+    
+    // --- Amount Extraction ---
+    // Patterns: "12,000원", "12000원", "금액 12,000", "결제금액 12,000원"
+    const amountPatterns = [
+        /(\d{1,3}(?:,\d{3})+)\s*원/,         // 12,000원
+        /(\d{4,})\s*원/,                       // 12000원
+        /금액\s*[:：]?\s*(\d{1,3}(?:,\d{3})+)/, // 금액: 12,000
+        /금액\s*[:：]?\s*(\d{4,})/,             // 금액: 12000
+        /(\d{1,3}(?:,\d{3})+)\s*(?:승인|결제|사용)/, // 12,000 승인
+        /(?:승인|결제|사용)\s*(\d{1,3}(?:,\d{3})+)/, // 승인 12,000
+    ];
+    
+    for (const pat of amountPatterns) {
+        const match = raw.match(pat);
+        if (match) {
+            amount = parseInt(match[1].replace(/,/g, ''));
+            break;
+        }
+    }
+    
+    // --- Date Extraction ---
+    // Patterns: "06/03", "06.03", "2026-06-03", "06월 03일"
+    const datePatterns = [
+        /(\d{4})[-./](\d{1,2})[-./](\d{1,2})/,  // 2026-06-03
+        /(\d{1,2})[/.](\d{1,2})\s+\d{1,2}:/,     // 06/03 15:44
+        /(\d{1,2})[/.](\d{1,2})/,                 // 06/03
+        /(\d{1,2})월\s*(\d{1,2})일/,              // 6월 3일
+    ];
+    
+    for (const pat of datePatterns) {
+        const match = raw.match(pat);
+        if (match) {
+            if (match.length === 4 && match[1].length === 4) {
+                // Full date: 2026-06-03
+                dateStr = `${match[1]}-${match[2].padStart(2,'0')}-${match[3].padStart(2,'0')}`;
+            } else if (match.length >= 3) {
+                // Month/Day only
+                const year = new Date().getFullYear();
+                dateStr = `${year}-${match[1].padStart(2,'0')}-${match[2].padStart(2,'0')}`;
+            }
+            break;
+        }
+    }
+    
+    // --- Store Name (Merchant) Extraction ---
+    const lines = raw.split(/[\n\r]+/).map(l => l.trim()).filter(l => l.length > 0);
+    
+    // Keywords to skip
+    const skipKeywords = [
+        '승인', '결제', '취소', '원', '누적', '잔액', '일시불', '할부',
+        '카드', '신한', '국민', '삼성', 'NH', '농협', '롯데', '하나', '우리', 'BC', '현대',
+        'Web발신', '체크', '토스', 'toss', '님', '월', '일', '합계', 'SMS',
+        '본인', '해외', '국내', '온라인'
+    ];
+    
+    for (const line of lines) {
+        // Skip lines with amounts
+        if (/\d{1,3}(,\d{3})+원/.test(line) || /\d{4,}원/.test(line)) continue;
+        // Skip date-only lines
+        if (/^\d{1,2}[/.]\d{1,2}\s+\d{1,2}:/.test(line)) continue;
+        if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(line)) continue;
+        // Skip lines that are mostly keywords
+        const isKeywordLine = skipKeywords.some(kw => {
+            const cleaned = line.replace(/[\[\]\(\)]/g, '');
+            return cleaned.length < 15 && cleaned.includes(kw);
+        });
+        
+        // Check if line looks like a merchant name (not too long, not too short)
+        if (!isKeywordLine && line.length >= 2 && line.length <= 30) {
+            // Remove bracket prefixes like [Web발신] 
+            let cleaned = line.replace(/^\[.*?\]\s*/, '').trim();
+            if (cleaned.length >= 2) {
+                title = cleaned;
+                break;
+            }
+        }
+    }
+    
+    // Fallback: try to find merchant after amount line
+    if (!title) {
+        const amountLineIdx = lines.findIndex(l => /\d{1,3}(,\d{3})*원/.test(l) || /\d{4,}원/.test(l));
+        if (amountLineIdx >= 0 && amountLineIdx + 1 < lines.length) {
+            title = lines[amountLineIdx + 1].replace(/^\[.*?\]\s*/, '').trim();
+        }
+    }
+    
+    if (!title) title = '(가맹점 미확인)';
+    
+    // --- Display Preview ---
+    if (amount > 0) {
+        parsedSmsData = { amount, title, date: dateStr };
+        
+        document.getElementById('smsPreviewAmount').innerText = amount.toLocaleString() + ' ₩';
+        document.getElementById('smsPreviewTitle').innerText = title;
+        document.getElementById('smsPreviewDate').innerText = dateStr;
+        document.getElementById('smsPreview').style.display = 'block';
+    } else {
+        alert('금액을 추출할 수 없습니다. 문자 내용을 확인해 주세요.');
+    }
+}
+
+function confirmSmsParse() {
+    if (!parsedSmsData.amount || parsedSmsData.amount <= 0) return;
+    
+    const category = document.getElementById('smsCategory').value;
+    
+    appData.finance.push({
+        id: Date.now(),
+        type: 'expense',
+        amount: parsedSmsData.amount,
+        title: parsedSmsData.title,
+        category: category,
+        date: parsedSmsData.date
+    });
+    
+    saveLocalData();
+    renderFinance();
+    closeModals();
+    
+    showToastAlert(`✅ ${parsedSmsData.title} ${parsedSmsData.amount.toLocaleString()}원 기록 완료!`);
 }

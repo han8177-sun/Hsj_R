@@ -19,6 +19,8 @@ let expenseChartInstance = null; // New chart instance
 let editingTransactionId = null; // Explicit transaction lookup ID tracker
 
 // Global XSS Sanitization helper
+let lastModalOpenTime = 0; // Ghost click prevention on mobile
+
 function sanitizeHTML(str) {
     if(!str) return "";
     return str.toString()
@@ -96,10 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
     initUI();
     renderAll();
 
-    // Modal backdrop click to close
+    // Modal backdrop click to close (with ghost-click protection for mobile)
     document.querySelectorAll('.modal-overlay').forEach(overlay => {
         overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) {
+            if (e.target === overlay && Date.now() - lastModalOpenTime > 300) {
                 closeModals();
             }
         });
@@ -742,6 +744,7 @@ function openAcademyModal(index) {
     }
     
     document.getElementById('academyModal').classList.add('show');
+    lastModalOpenTime = Date.now();
 }
 
 function saveAcademyBlock() {
@@ -1145,6 +1148,7 @@ function openFinanceModal() {
     const modal = document.getElementById('financeModal');
     modal.style.display = 'flex';
     modal.classList.add('show');
+    lastModalOpenTime = Date.now();
 }
 
 function setFinanceDate(offsetDays) {
@@ -1243,6 +1247,7 @@ function editFinance(id) {
     const modal = document.getElementById('financeModal');
     modal.style.display = 'flex';
     modal.classList.add('show');
+    lastModalOpenTime = Date.now();
 }
 
 function deleteFinance(id) {
@@ -1631,6 +1636,7 @@ function openSmsParseModal() {
     const modal = document.getElementById('smsModal');
     modal.style.display = 'flex';
     modal.classList.add('show');
+    lastModalOpenTime = Date.now();
 }
 
 function parseSmsText() {

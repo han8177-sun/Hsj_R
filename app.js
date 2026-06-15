@@ -104,6 +104,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // Notifications: init after data is loaded
+    requestNotificationPermission();
+    setTimeout(scheduleNotifications, 2000);
 });
 
 function generateTimeOptions() {
@@ -1138,7 +1142,9 @@ function openFinanceModal() {
     const btnEl = document.getElementById('financeSaveBtn');
     if(btnEl) btnEl.innerText = "저장하기";
     
-    document.getElementById('financeModal').classList.add('show');
+    const modal = document.getElementById('financeModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
 }
 
 function setFinanceDate(offsetDays) {
@@ -1234,7 +1240,9 @@ function editFinance(id) {
         document.getElementById('financeCategory').value = catTemp.textContent || catTemp.innerText || item.category;
     }
     
-    document.getElementById('financeModal').classList.add('show');
+    const modal = document.getElementById('financeModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
 }
 
 function deleteFinance(id) {
@@ -1609,12 +1617,7 @@ function scheduleNotifications() {
     });
 }
 
-// Call on init (after DOMContentLoaded renderAll)
-(function initNotifications() {
-    requestNotificationPermission();
-    // Schedule after a short delay to ensure data is loaded
-    setTimeout(scheduleNotifications, 2000);
-})();
+// initNotifications is now called inside DOMContentLoaded (see top of file)
 
 
 // --- SMS Card Text Parsing ---
@@ -1625,7 +1628,9 @@ function openSmsParseModal() {
     document.getElementById('smsTextInput').value = '';
     document.getElementById('smsPreview').style.display = 'none';
     parsedSmsData = { amount: 0, title: '', date: '' };
-    document.getElementById('smsModal').classList.add('show');
+    const modal = document.getElementById('smsModal');
+    modal.style.display = 'flex';
+    modal.classList.add('show');
 }
 
 function parseSmsText() {

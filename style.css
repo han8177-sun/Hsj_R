@@ -208,7 +208,7 @@ body.theme-cyber {
 .day-btn .date-num { font-size: 18px; font-weight: bold; width: 100%; text-align: center;}
 
 /* Main Area */
-main { flex: 1; padding: 20px; }
+main { flex: 1; padding: 20px; padding-bottom: 120px; }
 .tab-content { display: none; animation: fadeIn 0.3s ease; }
 .tab-content.active-tab { display: block; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -474,12 +474,29 @@ main { flex: 1; padding: 20px; }
 .tx-amt.inc { color: var(--neon-green); text-shadow: 0 0 5px rgba(57,255,20,0.3); font-size: 19px; font-weight: 600; }
 .tx-amt.exp { color: var(--neon-red); text-shadow: 0 0 5px rgba(255,51,51,0.3); font-size: 19px; font-weight: 600; }
 
+/* Prevent chart canvas from intercepting touch events */
+#expenseChart { pointer-events: none; }
+
+/* Ensure icon buttons are always tappable on mobile */
+.icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+    z-index: 10;
+}
+
 /* Bottom Nav */
 .cyber-bottom-nav {
     position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto;
     background: rgba(18,18,20,0.95); backdrop-filter: blur(10px);
     border-top: 1px solid var(--border-color); box-shadow: 0 -2px 15px rgba(0,0,0,0.8);
     display: flex; justify-content: space-around; align-items: center; padding: 12px 10px; padding-bottom: 25px;
+    z-index: 500;
 }
 .cyber-bottom-nav.weekend-nav { border-top-color: rgba(255,100,100,0.5); }
 .nav-item {

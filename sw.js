@@ -1,4 +1,4 @@
-const CACHE_NAME = 'planner-cache-v2';
+const CACHE_NAME = 'planner-cache-v3';
 const urlsToCache = [
     './index.html',
     './style.css',
@@ -11,10 +11,11 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
+    // skipWaiting: 새 SW가 즉시 활성화되도록 강제
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => {
-                console.log('Opened cache');
                 return cache.addAll(urlsToCache);
             })
     );
@@ -38,15 +39,19 @@ self.addEventListener('fetch', event => {
 
 self.addEventListener('activate', event => {
     const cacheWhitelist = [CACHE_NAME];
+    // clients.claim: 새 SW가 즉시 모든 탭을 제어하도록 강제
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames.map(cacheName => {
-                    if (cacheWhitelist.indexOf(cacheName) === -1) {
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
-        })
+        Promise.all([
+            self.clients.claim(),
+            caches.keys().then(cacheNames => {
+                return Promise.all(
+                    cacheNames.map(cacheName => {
+                        if (cacheWhitelist.indexOf(cacheName) === -1) {
+                            return caches.delete(cacheName);
+                        }
+                    })
+                );
+            })
+        ])
     );
 });
